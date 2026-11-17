@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Student access | Campora</title>
+    <link rel="stylesheet" href="campora.css">
+    <link rel="stylesheet" href="campus-design.css">
+    <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+    <script src="community-client.js" defer></script>
+    <script src="auth.js" defer></script>
+</head>
+<body class="auth-page signin-redesign">
+    <main class="signin-shell">
+        <div class="signin-entry">
+            <div class="campora-brand"><img src="favicon.png" alt="">campora<span>.</span></div>
+        <section class="auth-content" aria-labelledby="auth-title">
+            <h1 id="auth-title">Sign in to Campora</h1>
+            <p id="auth-local" hidden>Start the Campora server, then <a href="http://localhost:3000/signin">open the local sign-in page</a>.</p>
+            <p id="auth-instructions">Enter your email and password.</p>
+            <form id="auth-login" method="post" action="/auth/login">
+                <label for="login-email">Email address</label>
+                <input id="login-email" name="email" type="email" autocomplete="username" placeholder="you@example.com" maxlength="254" required>
+                <label class="auth-next-label" for="login-password">Password</label>
+                <input id="login-password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+                <div class="auth-actions">
+                    <button class="primary-button" type="submit">Sign in</button>
+                    <button class="auth-secondary" id="auth-create" type="button">Create account</button>
+                    <button class="auth-secondary" id="auth-reset" type="button">Set or reset password</button>
+                </div>
+            </form>
+            <form id="auth-request" method="post" action="/auth/request" hidden>
+                <label for="request-email">Email address</label>
+                <input id="request-email" name="email" type="email" autocomplete="email" maxlength="254" required>
+                <fieldset id="signup-details" hidden disabled>
+                    <label class="auth-next-label" for="signup-name">Display name</label>
+                    <input id="signup-name" name="name" autocomplete="name" maxlength="60" required>
+                    <label class="auth-next-label" for="signup-username">Username</label>
+                    <input id="signup-username" name="username" autocomplete="off" autocapitalize="none" spellcheck="false" pattern="[A-Za-z0-9_]{3,24}" maxlength="24" aria-describedby="signup-username-help" required>
+                    <small id="signup-username-help">3 to 24 letters, numbers, or underscores.</small>
+                    <label class="auth-next-label" for="signup-password">Password</label>
+                    <input id="signup-password" name="password" type="password" autocomplete="new-password" minlength="15" maxlength="128" aria-describedby="signup-password-help" required>
+                    <small id="signup-password-help">Use 15 to 128 characters.</small>
+                    <label class="auth-next-label" for="signup-department">Department and level <span>(optional)</span></label>
+                    <input id="signup-department" name="department" maxlength="100" placeholder="e.g. Computer Science, 300 level">
+                    <label class="auth-next-label" for="signup-bio">Bio <span>(optional)</span></label>
+                    <textarea id="signup-bio" name="bio" maxlength="250" rows="3"></textarea>
+                    <label class="auth-next-label" for="signup-photo">Profile photo <span>(optional)</span></label>
+                    <input id="signup-photo" name="photo" type="file" accept="image/jpeg,image/png,image/gif,image/webp">
+                </fieldset>
+                <div class="auth-actions">
+                    <button class="primary-button" type="submit">Send verification code</button>
+                    <button class="auth-secondary" id="auth-signin" type="button">Back to sign in</button>
+                </div>
+            </form>
+            <form id="auth-verify" method="post" action="/auth/verify" hidden>
+                <label for="email-code">8-digit email code</label>
+                <input id="email-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{8}" maxlength="8" required>
+                <fieldset id="reset-details">
+                    <label class="auth-next-label" for="new-password">New password</label>
+                    <input id="new-password" name="password" type="password" autocomplete="new-password" minlength="15" maxlength="128" aria-describedby="password-help" required>
+                    <small id="password-help">Use 15 to 128 characters.</small>
+                </fieldset>
+                <div class="auth-actions">
+                    <button class="primary-button" type="submit">Save password and sign in</button>
+                    <button class="auth-secondary" id="auth-resend" type="button">Send a new code</button>
+                    <button class="auth-secondary" id="auth-back" type="button">Change email</button>
+                </div>
+            </form>
+            <p id="auth-status" role="status"></p>
+        </section>
+            <footer class="signin-footer">Anchor University <span>·</span> Campus community</footer>
+        </div>
+        <aside class="signin-feature" aria-label="About Campora">
+            <svg class="campus-print" viewBox="0 0 510 320" aria-hidden="true" fill="none">
+                <path d="M30 256V104l225-73 225 73v152l-225 45z" fill="#412767" stroke="#a787dc"/>
+                <path d="M255 301V139L30 104m225 35 225-35M30 256l225-117 225 117" stroke="#a787dc"/>
+                <path d="M51 219V79c93-31 160-18 204 48 44-66 111-79 204-48v140c-93-26-159-13-204 45-45-58-111-71-204-45Z" fill="#d9c6fc" stroke="#251339" stroke-width="2"/>
+                <path d="M255 127v137m-184-153c69-20 121-15 158 21M71 142c69-20 121-15 158 21M71 173c69-20 121-15 158 21m49-62c37-36 89-41 159-21m-159 52c37-36 89-41 159-21m-159 52c37-36 89-41 159-21" stroke="#6a4999" stroke-width="2"/>
+                <circle cx="255" cy="31" r="11" fill="#e9dafe"/>
+                <circle cx="30" cy="256" r="6" fill="#e9dafe"/>
+                <circle cx="480" cy="256" r="6" fill="#e9dafe"/>
+            </svg>
+            <h2>Campus life, in one place.</h2>
+            <p>Find your people, keep up with what’s happening, and discover opportunities at Anchor University.</p>
+        </aside>
+    </main>
+</body>
+</html>

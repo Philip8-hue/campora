@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campora | Anchor University Student Community</title>
+    <script>
+        if (location.protocol === "file:") location.replace("signin.html");
+    </script>
+    <link rel="stylesheet" href="campora.css">
+    <link rel="stylesheet" href="campus-design.css">
+    <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+</head>
+
+<body class="campus-redesign">
+    <header class="sidebar site-header">
+        <div class="site-header-inner">
+            <a href="/" class="logo campora-brand" data-nav="home"><img src="/favicon.png" alt="">campora<span>.</span></a>
+            <button type="button" class="mobile-menu-button" aria-expanded="false" aria-controls="campusNavigation">Menu</button>
+            <nav class="campus-navigation" id="campusNavigation" aria-label="Campus navigation">
+                <div class="nav-section">
+                    <p class="nav-heading">Discover</p>
+                    <a href="#" class="nav-link active" data-nav="home" aria-current="page">
+                        <span>Campus feed</span>
+                    </a>
+                    <a href="#" class="nav-link" data-nav="explore">
+                        <span>Explore</span>
+                    </a>
+                    <a href="#" class="nav-link" data-nav="search">
+                        <span>Search</span>
+                    </a>
+                    <a href="#" class="nav-link" data-nav="reels">
+                        <span>Reels</span>
+                    </a>
+                    <a href="#" class="nav-link" data-nav="live">
+                        <span>Campus chat</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <p class="nav-heading">Campus</p>
+                    <a href="#" class="nav-link" data-nav="communities">
+                        <span>Communities</span>
+                    </a>
+                    <a href="#" class="nav-link" data-nav="messages">
+                        <span>Messages</span>
+                    </a>
+                    <a href="#" class="nav-link" data-nav="saved">
+                        <span>Saved</span>
+                    </a>
+                    <a href="#" class="nav-link" data-nav="opportunities">
+                        <span>Opportunities</span>
+                    </a>
+                    <a href="#" class="nav-link" data-nav="notifications">
+                        <span>Notifications</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <p class="nav-heading">Account</p>
+                    <a href="#" class="nav-link" data-nav="profile">
+                        <span>My Profile</span>
+                    </a>
+                    <a href="#" class="nav-link" data-nav="settings">
+                        <span>Settings</span>
+                    </a>
+                </div>
+
+                <div class="sidebar-bottom">
+                    <button type="button" class="profile-mini" id="sidebarProfileTrigger">
+                        <div class="avatar" id="sidebarAvatar">Y</div>
+                        <div>
+                            <strong id="sidebarStudentName">You</strong>
+                            <p id="sidebarStudentCampus">Anchor University</p>
+                        </div>
+                    </button>
+                </div>
+                <a href="/admin" class="nav-link" id="adminLink" hidden>Admin workspace</a>
+                <form class="signout-form" action="/auth/logout" method="post">
+                    <button class="auth-secondary" type="submit">Log out</button>
+                </form>
+            </nav>
+        </div>
+    </header>
+
+    <div class="app-container">
+        <!-- MAIN CONTENT AREA WITH TAB PAGES -->
+        <main class="main-content">
+
+            <!-- GLOBAL TOP BAR: CAMPUS PICKER & CREATE POST -->
+            <header class="page-header campus-toolbar">
+                <div>
+                    <div class="campus-header-pill"><strong>Anchor University</strong></div>
+                </div>
+
+                <button class="primary-button" id="createPostBtn">New post</button>
+            </header>
+            <p id="campus-status" class="campus-announcement" role="alert" hidden></p>
+
+            <!-- ============================================== -->
+            <!-- 1. HOME TAB PAGE (FEED, STORIES, COMPOSER)      -->
+            <!-- ============================================== -->
+            <div id="tab-home" class="tab-page active">
+                
+                <header class="feed-masthead">
+                    <h1 class="campus-feed-title">Campus feed</h1>
+                    <p>Catch up with what’s happening across Anchor University.</p>
+                    <svg viewBox="0 0 260 152" aria-hidden="true" fill="none">
+                        <path d="M20 121V38c47-16 84-10 110 25 26-35 63-41 110-25v83c-47-15-84-9-110 20-26-29-63-35-110-20Zm110-58v78M34 62c34-10 61-6 82 10M34 83c34-10 61-6 82 10m28-21c21-16 48-20 82-10m-82 31c21-16 48-20 82-10" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </header>
+
+                <!-- POST COMPOSER -->
+                <section class="composer card">
+                    <div class="composer-top">
+                        <div class="avatar" id="composerAvatar">Y</div>
+                        <button class="composer-prompt" id="composerPrompt">
+                            What's happening on campus?
+                        </button>
+                    </div>
+
+                    <div class="composer-actions">
+                        <button class="text-button" id="photoPostBtn">Photo or video</button>
+                        <button class="text-button" id="pollBtn">Start a poll</button>
+                        <button class="text-button" id="confessionBtn">Post anonymously</button>
+                    </div>
+                </section>
+
+                <!-- STORIES -->
+                <section class="stories-section">
+                    <div class="section-heading">
+                        <h2>Stories</h2>
+                    </div>
+
+                    <div class="stories-list">
+                        <label class="story-card add-story">
+                            <input type="file" id="storyUpload" accept="image/*,video/*" hidden>
+                            <span class="add-story-icon">+</span>
+                            <span>Add Story</span>
+                        </label>
+                    </div>
+                </section>
+
+                <!-- POST FEED -->
+                <section class="feed-section">
+                    <div class="section-heading">
+                        <h2>Campus updates</h2>
+                        <div class="feed-filters">
+                            <button class="filter-chip active" id="feedFilterAll">For you</button>
+                            <button class="filter-chip" id="feedFilterConfessions">Confessions</button>
+                        </div>
+                    </div>
+
+                    <p id="emptyFeed">Campus posts will appear here.</p>
+                </section>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- 2. EXPLORE TAB PAGE                            -->
+            <!-- ============================================== -->
+            <section id="tab-explore" class="tab-page">
+                <div class="section-heading"><h2>Explore Anchor University</h2></div>
+                <section class="campus-tools">
+                    <h3>Upcoming events</h3>
+                    <div id="exploreEvents"></div>
+                </section>
+                <section class="campus-tools">
+                    <h3>Open opportunities</h3>
+                    <div id="exploreOpportunities"></div>
+                </section>
+            </section>
+
+            <div id="tab-search" class="tab-page">
+                <div class="search-container">
+                    <div class="search-input-wrap">
+                        
+                        <input type="text" id="mainSearchInput" aria-label="Search campus" placeholder="Search students, groups, topics, or course codes (e.g. CSC 301)...">
+                        <button class="primary-button" id="executeSearchBtn" style="padding: 6px 14px; font-size: 13px;">Search</button>
+                    </div>
+
+                    <div class="search-filters">
+                        <button class="filter-chip active" data-filter="all">All</button>
+                        <button class="filter-chip" data-filter="students">Students</button>
+                        <button class="filter-chip" data-filter="communities">Communities</button>
+                        <button class="filter-chip" data-filter="posts">Posts</button>
+                        <button class="filter-chip" data-filter="opportunities">Opportunities</button>
+                    </div>
+                </div>
+
+                <div class="section-heading">
+                    <h3 id="searchResultsHeader">Suggested Profiles & Hubs</h3>
+                </div>
+
+                <div class="search-results-grid" id="searchResultsContainer">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- 4. REELS TAB PAGE                              -->
+            <!-- ============================================== -->
+            <div id="tab-reels" class="tab-page">
+                <div class="section-heading"><h2>Campus reels</h2></div>
+                <div class="reels-container">
+                    <div class="reels-feed" id="reelsFeed">
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- 5. LIVE TAB PAGE                               -->
+            <!-- ============================================== -->
+            <div id="tab-live" class="tab-page">
+                <div class="section-heading">
+                    <h2>Campus discussion</h2>
+                </div>
+
+                <section class="campus-tools">
+                    <h3>Live video</h3>
+                    <form id="broadcastForm">
+                        <label for="broadcastTitle">Broadcast title</label>
+                        <input id="broadcastTitle" maxlength="120" required>
+                        <button class="primary-button">Go live</button>
+                    </form>
+                    <video id="broadcastVideo" autoplay playsinline controls hidden></video>
+                    <button id="stopBroadcast" class="auth-secondary" hidden>Leave broadcast</button>
+                    <p id="broadcastStatus" role="status"></p>
+                    <div id="broadcastRooms"></div>
+                </section>
+                <div class="live-stream-container campus-chat-only">
+                    <div class="live-chat-panel">
+                        <div class="live-chat-header">
+                            <span>Live Discussion</span>
+                            
+                        </div>
+
+                        <div class="live-chat-messages" id="liveChatMessages"></div>
+
+                        <form id="liveChatForm" class="live-chat-input-wrap">
+                            <input type="text" id="liveChatInput" aria-label="Campus discussion message" placeholder="Join the discussion..." required>
+                            <button type="submit">Send</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- 6. COMMUNITIES TAB PAGE                        -->
+            <!-- ============================================== -->
+            <div id="tab-communities" class="tab-page">
+                <div class="section-heading">
+                    <h2>Campus Communities & Societies</h2>
+                    <span>Join faculty clubs, departments & associations</span>
+                </div>
+
+
+                <div class="communities-grid">
+                    <!-- Community 1 -->
+                    <div class="community-card">
+                        <div class="community-banner"></div>
+                        <div class="community-content">
+                            <div class="community-avatar">CS</div>
+                            <h3 class="community-title">NACOS (Computing Students)</h3>
+                            <span class="community-campus">Anchor University Chapter</span>
+                            <p class="community-desc">The official home for Computer Science, Software Engineering and Information Tech undergraduates.</p>
+                            <div class="community-footer">
+                                <span class="community-stats"></span>
+                                <button class="join-community-btn" data-community="NACOS">Join</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Community 2 -->
+                    <div class="community-card">
+                        <div class="community-banner green"></div>
+                        <div class="community-content">
+                            <div class="community-avatar">PM</div>
+                            <h3 class="community-title">Campus Press & Media Club</h3>
+                            <span class="community-campus">Anchor University</span>
+                            <p class="community-desc">Student journalism, investigative news, event photography, and campus podcasts.</p>
+                            <div class="community-footer">
+                                <span class="community-stats"></span>
+                                <button class="join-community-btn" data-community="Press Club">Join</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Community 3 -->
+                    <div class="community-card">
+                        <div class="community-banner purple"></div>
+                        <div class="community-content">
+                            <div class="community-avatar">LS</div>
+                            <h3 class="community-title">Law & Moot Court Society</h3>
+                            <span class="community-campus">Faculty of Law</span>
+                            <p class="community-desc">Mock trials, legal debates, constitutional discussions, and student legal aid workshops.</p>
+                            <div class="community-footer">
+                                <span class="community-stats"></span>
+                                <button class="join-community-btn" data-community="Law Society">Join</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Community 4 -->
+                    <div class="community-card">
+                        <div class="community-banner orange"></div>
+                        <div class="community-content">
+                            <div class="community-avatar">GD</div>
+                            <h3 class="community-title">Google Developer Student Club (GDSC)</h3>
+                            <span class="community-campus">Anchor University Chapter</span>
+                            <p class="community-desc">Build real-world apps, collaborate on hackathons, and connect with industry mentors.</p>
+                            <div class="community-footer">
+                                <span class="community-stats"></span>
+                                <button class="join-community-btn" data-community="GDSC">Join</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- 7. MESSAGES TAB PAGE                           -->
+            <!-- ============================================== -->
+            <div id="tab-messages" class="tab-page">
+                <div class="section-heading">
+                    <h2>Direct Campus Messages</h2>
+                    <span>Private chat with coursemates and peer study groups</span>
+                </div>
+
+                <div class="messages-box">
+                    <div class="messages-sidebar">
+                        <div class="messages-search-bar">
+                            <input type="text" placeholder="Find a student" aria-label="Find a student">
+                        </div>
+                        <div class="chat-thread-list" id="chatThreadList"></div>
+                    </div>
+
+                    <div class="chat-window">
+                        <div class="chat-header">
+                            <div class="avatar" id="activeChatAvatar">A</div>
+                            <div>
+                                <strong id="activeChatName">Choose a student</strong>
+                                <p style="font-size:11px; color:var(--green);">Anchor University</p>
+                            </div>
+                        </div>
+
+                        <div class="chat-messages-scroll" id="chatMessagesArea"></div>
+
+                        <form id="chatSendForm" class="chat-composer-bar">
+                            <input type="text" id="chatMessageInput" aria-label="Direct message" placeholder="Write a message..." required>
+                            <button type="submit" class="chat-send-btn">Send</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- 8. SAVED TAB PAGE                              -->
+            <!-- ============================================== -->
+            <div id="tab-saved" class="tab-page">
+                <div class="section-heading">
+                    <h2>Bookmarks & Saved Items</h2>
+                    <span>Posts you saved</span>
+                </div>
+
+
+                <div class="saved-items-grid" id="savedItemsContainer"></div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- 9. OPPORTUNITIES TAB PAGE                      -->
+            <!-- ============================================== -->
+            <div id="tab-opportunities" class="tab-page">
+                <div class="section-heading"><h2>Campus opportunities</h2></div>
+                <div id="publishedOpportunities"></div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- 10. NOTIFICATIONS TAB PAGE                     -->
+            <!-- ============================================== -->
+            <div id="tab-notifications" class="tab-page">
+                <div class="section-heading">
+                    <h2>Notifications</h2>
+                    <button class="text-button" id="markAllReadBtn">Mark all as read</button>
+                </div>
+
+                <div class="notifications-box" id="campusNotifications"></div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- 11. MY PROFILE TAB PAGE                        -->
+            <!-- ============================================== -->
+            <div id="tab-profile" class="tab-page">
+                <section class="social-profile-header">
+                    <div class="profile-cover"></div>
+
+                    <div class="social-profile-picture-wrap">
+                        <img id="socialProfilePicture"
+                            src="/favicon.png"
+                            alt="Student profile picture">
+                    </div>
+
+                    <div class="social-profile-details">
+                        <h1 id="socialProfileName">Your Name</h1>
+                        <p id="socialProfileUsername">@campora_student</p>
+                        <p id="socialProfileBio">Passionate Nigerian student learning, building and connecting on Campora!</p>
+                        
+                        <p class="social-profile-campus">
+                            <span id="socialProfileCampus">Anchor University, Lagos</span>
+                        </p>
+                        <p class="social-profile-department">
+                            <span id="socialProfileDepartment">Department not set</span>
+                        </p>
+                    </div>
+
+                    <button type="button" id="editSocialProfileBtn" class="edit-social-profile-btn">
+                        Edit Profile
+                    </button>
+                </section>
+
+                <div class="social-profile-stats">
+                    <div><strong id="profilePostsCount">0</strong><span>Posts</span></div>
+                </div>
+
+                <div class="social-profile-tabs">
+                    <button type="button" class="profile-tab active" data-profile-tab="posts">Posts</button>
+                    <button type="button" class="profile-tab" data-profile-tab="media">Media</button>
+                    <button type="button" class="profile-tab" data-profile-tab="saved">Saved</button>
+                </div>
+
+                <div id="studentProfilePosts" class="student-profile-posts">
+                    <div class="profile-empty-state">
+                        
+                        <h3>Your posts appear here</h3>
+                        <p>Share photos, campus polls or updates from the home feed.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- 12. SETTINGS TAB PAGE                          -->
+            <!-- ============================================== -->
+            <div id="tab-settings" class="tab-page">
+                <div class="section-heading">
+                    <h2>Settings & Preferences</h2>
+                    <span>Appearance and campus information</span>
+                </div>
+
+                <div class="settings-grid">
+
+                    <div class="settings-panel">
+                        <div class="settings-group">
+                            <h3>Theme & Appearance</h3>
+                            <p>Choose between light mode and dark mode for low-light hostel study nights.</p>
+                            <div class="settings-row">
+                                <span>Dark Mode</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="darkModeToggle" aria-label="Dark mode">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="settings-group">
+                            <h3>Campus Affiliation</h3>
+                            <p>Anchor University, Lagos</p>
+                        </div>
+
+                        <div class="settings-group">
+                            <h3>Anonymous posts</h3>
+                            <p>Choose Post anonymously in the composer to hide your name from other students.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- RIGHT SIDEBAR (CHALLENGES & UPCOMING EVENTS) -->
+        <aside class="right-sidebar">
+            <section class="right-card" aria-labelledby="calendar-title">
+                <h2 id="calendar-title">Campus calendar</h2>
+                <div id="publishedEvents"></div>
+            </section>
+            <p class="campus-announcement">Campora is currently available at Anchor University. <strong>More universities are coming soon.</strong></p>
+            <section class="right-card">
+                <h2>Group leaderboard</h2>
+                <p>Ranked by student memberships.</p>
+                <ol id="campusLeaderboard"></ol>
+            </section>
+        </aside>
+
+    </div>
+
+    <!-- Campora Student Profile Edit Modal -->
+    <div class="profile-modal-overlay" id="profileModal" hidden>
+        <div class="profile-modal" role="dialog" aria-modal="true" aria-label="Edit profile">
+            <button type="button" class="profile-close" id="closeProfileBtn" aria-label="Close profile">&times;</button>
+
+            <h2>Edit Student Profile</h2>
+            <p class="profile-subtitle">Introduce yourself to the Anchor University community.</p>
+
+            <form id="profileForm">
+                <div class="profile-picture-preview">
+                    <img id="profilePicturePreview"
+                        src="/favicon.png"
+                        alt="Your profile picture">
+                </div>
+
+                <label for="profilePictureInput">Profile picture</label>
+                <input type="file" id="profilePictureInput" accept="image/*">
+
+                <label for="profileName">Full name</label>
+                <input type="text" id="profileName" placeholder="e.g. Babatunde Adeyemi" maxlength="60" required>
+
+                <label for="profileCampus">University / Campus</label>
+                <input type="text" id="profileCampus" value="Anchor University, Lagos" readonly>
+
+                <label for="profileDepartment">Department & Level</label>
+                <input type="text" id="profileDepartment" placeholder="e.g. Computer Science · 300L" maxlength="100">
+
+                <label for="profileBio">Bio / About me</label>
+                <textarea id="profileBio" placeholder="Tell other students a little about yourself, your interests, and what you're building..." maxlength="250" rows="3"></textarea>
+
+                <button type="submit" class="profile-save-btn">Save Profile</button>
+                <p id="profileMessage" role="status"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT -->
+    <script src="/session.js"></script>
+    <script src="/community-client.js"></script>
+    <script src="/campus-operations.js"></script>
+    <script src="campora.js"></script>
+</body>
+</html>

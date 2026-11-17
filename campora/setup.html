@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Set up your profile | Campora</title>
+    <link rel="stylesheet" href="/campora.css">
+    <link rel="stylesheet" href="/campus-design.css">
+    <link rel="icon" href="/favicon.png" type="image/png">
+    <script src="/community-client.js" defer></script>
+    <script src="/setup.js" defer></script>
+</head>
+<body class="auth-page signin-redesign">
+    <main class="auth-card">
+        <header class="setup-header">
+            <div class="campora-brand"><img src="/favicon.png" alt="">campora<span>.</span></div>
+            <form action="/auth/logout" method="post"><button class="auth-secondary" type="submit">Log out</button></form>
+        </header>
+        <section class="auth-content setup-content" aria-labelledby="setup-title">
+            <h1 id="setup-title">Set up your profile</h1>
+            <p>Your name and username help people find you on Campora. Your sign-in email stays private.</p>
+            <form id="setup-form">
+                <fieldset disabled>
+                    <label for="setup-name">Display name</label>
+                    <input id="setup-name" name="name" autocomplete="name" maxlength="60" required>
+                    <label for="setup-username">Username</label>
+                    <input id="setup-username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" pattern="[A-Za-z0-9_]{3,24}" maxlength="24" aria-describedby="username-help" required>
+                    <small id="username-help">3 to 24 letters, numbers, or underscores.</small>
+                    <label for="setup-department">Department and level <span>(optional)</span></label>
+                    <input id="setup-department" name="department" maxlength="100" placeholder="e.g. Computer Science, 300 level">
+                    <label for="setup-bio">Bio <span>(optional)</span></label>
+                    <textarea id="setup-bio" name="bio" maxlength="250" rows="3"></textarea>
+                    <label for="setup-photo">Profile photo <span>(optional)</span></label>
+                    <input id="setup-photo" name="photo" type="file" accept="image/jpeg,image/png,image/gif,image/webp">
+                    <div class="auth-actions"><button class="primary-button" type="submit">Continue to Campora</button></div>
+                </fieldset>
+                <p id="campus-status" role="alert" hidden></p>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

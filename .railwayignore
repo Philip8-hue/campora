@@ -1,0 +1,7 @@
+.env*
+.campora-data/
+.campora-qa/
+.vercel-edge/
+node_modules/
+*.mp4
+**/*.mp4

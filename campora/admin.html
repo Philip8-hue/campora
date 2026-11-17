@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin workspace | Campora</title>
+    <link rel="stylesheet" href="/campora.css">
+    <link rel="stylesheet" href="/campus-design.css">
+    <link rel="icon" href="/favicon.png" type="image/png" sizes="32x32">
+</head>
+<body class="workspace-redesign">
+    <header class="workspace-bar">
+        <div>
+            <a class="campora-brand" href="/"><img src="/favicon.png" alt="">campora<span>.</span></a>
+            <a class="workspace-return" href="/">Campus feed</a>
+            <form action="/auth/logout" method="post"><button class="auth-secondary" type="submit">Log out</button></form>
+        </div>
+    </header>
+    <main class="workspace-layout">
+        <header class="workspace-heading">
+            <h1>Admin workspace</h1>
+            <p>Manage campus listings, review reports, and oversee live video at Anchor University.</p>
+        </header>
+        <nav class="workspace-index" aria-label="Workspace sections">
+            <a href="#reports">Reported posts</a>
+            <a href="#listings">Calendar &amp; opportunities</a>
+            <a href="#broadcasts">Active broadcasts</a>
+        </nav>
+        <div class="workspace-body">
+            <p id="campus-status" class="campus-announcement" role="alert" hidden></p>
+            <section class="campus-tools workspace-section" id="reports" aria-labelledby="reports-title">
+                <h2 id="reports-title">Reported posts</h2>
+                <p>Review reports and decide which posts should stay visible.</p>
+                <div class="workspace-records" id="moderatorReports">Loading reported posts…</div>
+            </section>
+            <section class="campus-tools workspace-section" id="listings" aria-labelledby="listings-title">
+                <h2 id="listings-title">Calendar &amp; opportunities</h2>
+                <p>Publish events and opportunities to the campus feed.</p>
+                <form id="listingForm">
+                    <input type="hidden" name="id">
+                    <label>Listing type <select name="kind"><option value="event">Calendar event</option><option value="opportunity">Opportunity</option></select></label>
+                    <label><span id="listingDateLabel">Event date</span> <input name="date" type="date" required></label>
+                    <label class="field-wide">Title <input name="title" maxlength="120" required></label>
+                    <label class="field-wide">Details <textarea name="details" maxlength="1000" rows="3"></textarea></label>
+                    <label class="field-wide">Official link <input name="url" type="url" maxlength="1500" placeholder="https://"></label>
+                    <div class="field-wide workspace-actions">
+                        <button class="primary-button" type="submit" id="publishListing">Publish listing</button>
+                        <button class="auth-secondary" type="reset">Clear form</button>
+                    </div>
+                </form>
+                <h3>Published listings</h3>
+                <div class="workspace-records" id="moderatorListings">Loading listings…</div>
+            </section>
+            <section class="campus-tools workspace-section" id="broadcasts" aria-labelledby="broadcasts-title">
+                <h2 id="broadcasts-title">Active broadcasts</h2>
+                <p>See which rooms are live and end a broadcast if needed.</p>
+                <div class="workspace-records" id="moderatorBroadcasts">Loading broadcasts…</div>
+            </section>
+        </div>
+    </main>
+    <script src="/community-client.js"></script>
+    <script src="/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile | Campora</title>
+    <script>
+        if (location.protocol === "file:") location.replace("signin.html");
+    </script>
+    <link rel="stylesheet" href="campora.css">
+    <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
+</head>
+<body class="profile-page-body">
+
+    <main class="profile-page-container">
+        <button type="button" class="back-to-feed-btn"
+            onclick="window.location.href='index.html'">
+            ← Back to Feed
+        </button>
+
+        <div class="profile-cover"></div>
+
+        <section class="social-profile-header">
+            <div class="social-profile-picture-wrap">
+                <img id="socialProfilePicture"
+                    src="/favicon.png"
+                    alt="Student profile picture">
+            </div>
+
+            <div class="social-profile-details">
+                <h1 id="socialProfileName">Your Name</h1>
+                <p id="socialProfileUsername">@campora_student</p>
+                <p id="socialProfileBio">Welcome to my Campora profile!</p>
+                <p class="social-profile-campus">
+                    <span id="socialProfileCampus">Anchor University, Lagos</span>
+                </p>
+                <p class="social-profile-department">
+                    <span id="socialProfileDepartment">Your Department</span>
+                </p>
+            </div>
+
+            <button type="button" id="editSocialProfileBtn"
+                class="edit-social-profile-btn">
+                Edit Profile
+            </button>
+        </section>
+
+        <p><a class="auth-secondary" href="/#profile">View your campus posts</a></p>
+    </main>
+
+    <script src="/session.js"></script>
+    <script src="/community-client.js"></script>
+    <script src="profile.js"></script>
+</body>
+</html>

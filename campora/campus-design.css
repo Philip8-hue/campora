@@ -1,0 +1,270 @@
+/* Shared campus identity */
+:root {
+    --primary: #5525a7;
+    --accent: #5525a7;
+    --primary-light: #f1eafc;
+    --background: #f8f7fb;
+    --text: #221934;
+    --text-secondary: #564865;
+    --muted: #655872;
+    --border: #e2dbe9;
+    --surface-hover: #f3eefb;
+    --campus-ink: #251639;
+    --campus-display: Georgia, "Times New Roman", serif;
+}
+::selection { color: var(--campus-ink); background: #dfccff; }
+:where(a, button, input, textarea, select):focus-visible {
+    outline: 2px solid #794ac7;
+    outline-offset: 3px;
+}
+.campora-brand {
+    display: inline-flex;
+    align-items: center;
+    color: var(--campus-ink);
+    font-size: 1.65rem;
+    font-weight: 800;
+    letter-spacing: -.04em;
+    line-height: 1;
+    white-space: nowrap;
+}
+.campora-brand img { width: 34px; height: 34px; margin-right: 9px; border-radius: 8px; }
+.campora-brand span { color: #783fb9; }
+
+/* Sign-in */
+.signin-redesign {
+    padding: clamp(16px, 4vw, 56px);
+    background: #eee9f5;
+}
+.signin-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, .98fr);
+    width: min(100%, 1136px);
+    min-height: min(690px, 85dvh);
+    overflow: hidden;
+    border: 1px solid #dbd1e6;
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 26px 60px -36px #45345c70;
+}
+.signin-entry { display: grid; align-content: space-between; gap: 46px; padding: clamp(30px, 5vw, 67px); }
+.signin-entry .auth-content { width: min(100%, 370px); padding: 0; }
+.signin-entry h1 {
+    margin-bottom: 12px;
+    font: 400 clamp(2.35rem, 3.6vw, 3.55rem)/1.03 var(--campus-display);
+    letter-spacing: -.035em;
+    text-wrap: balance;
+}
+.signin-entry p { color: var(--text-secondary); overflow-wrap: anywhere; font-size: .975rem; }
+.signin-entry .auth-content form { margin-top: 26px; }
+.signin-entry .auth-content .auth-next-label { margin-top: 14px; }
+.signin-entry fieldset { min-width: 0; border: 0; }
+.signin-entry :is(small, label span) { color: var(--muted); font-weight: 400; }
+.signin-entry .auth-content input {
+    min-height: 52px;
+    padding-inline: 14px;
+    border-color: #9e90ad;
+    background: #fff;
+    color: var(--text);
+    font-size: 1rem;
+}
+.signin-entry .auth-content input::placeholder { color: #70647f; }
+.signin-entry #email-code { letter-spacing: .18em; font-variant-numeric: tabular-nums; }
+.signin-entry .auth-actions { gap: 8px; }
+.signin-entry .primary-button {
+    width: 100%;
+    min-height: 50px;
+    border-radius: 8px !important;
+    background: var(--accent) !important;
+    box-shadow: none !important;
+}
+.signin-entry .primary-button:hover:not(:disabled) { background: #421980 !important; }
+.signin-entry .auth-secondary:hover { background: var(--primary-light); }
+#auth-status:not(:empty) { padding: 10px 12px; border-radius: 8px; background: #f3edf9; }
+#auth-status[data-state="error"]:not(:empty) { background: #fff0f1; color: #8d2631; }
+.signin-footer { color: var(--muted); font-size: .875rem; }
+.signin-footer span { margin-inline: 5px; }
+.signin-feature {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+    padding: clamp(30px, 5vw, 67px);
+    color: #faf6ff;
+    background: #2d1945;
+}
+.campus-print { width: 100%; max-height: 330px; margin-bottom: 10px; }
+.signin-feature h2 { font: 400 clamp(2.3rem, 4vw, 3.65rem)/1.04 var(--campus-display); letter-spacing: -.035em; }
+.signin-feature p { max-width: 36ch; color: #e1d2f4; font-size: 1rem; }
+.setup-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 20px 24px; border-bottom: 1px solid var(--border); }
+.setup-header .auth-secondary { white-space: nowrap; }
+.setup-content fieldset { border: 0; min-width: 0; }
+.setup-content label:not(:first-child) { margin-top: 14px; }
+.setup-content :is(small, label span) { color: var(--muted); font-weight: 400; }
+.auth-content textarea { width: 100%; padding: 8px 12px; border: 1px solid #9587a5; border-radius: 8px; font: inherit; resize: vertical; }
+.setup-content .primary-button { width: 100%; }
+.setup-content #campus-status { margin-top: 10px; color: #8d2631; overflow-wrap: anywhere; }
+
+/* Campus app */
+.campus-redesign .site-header.sidebar { background: #fff; color: var(--text); border-bottom: 1px solid var(--border); }
+.campus-redesign .site-header .logo { display: inline-flex !important; color: var(--campus-ink); font-size: 25px !important; }
+.campus-redesign .site-header .logo span { color: #783fb9; }
+.campus-redesign .site-header .mobile-menu-button { color: var(--accent); border-color: var(--border); }
+.campus-redesign .site-header .mobile-menu-button:is(:hover,[aria-expanded="true"]) { background: var(--primary-light); }
+.campus-redesign .site-header .nav-link.active { background: #eee5fb !important; color: #4e2393 !important; }
+.campus-redesign .site-header .nav-link:hover { background: var(--surface-hover); }
+.campus-redesign .profile-mini { width: 100%; background: var(--primary-light); color: var(--text); text-align: left; }
+.campus-redesign .app-container { align-items: start; padding-block: 25px; }
+.campus-redesign .app-container .main-content { min-width: 0; border: 0; padding: 0; background: transparent; }
+.campus-redesign .app-container .page-header { margin: 0 0 14px; padding: 0; background: transparent; border: 0; }
+.campus-redesign .campus-toolbar .campus-header-pill { padding-left: 0; background: transparent; border: 0; }
+.feed-masthead {
+    position: relative;
+    isolation: isolate;
+    min-height: 182px;
+    overflow: hidden;
+    display: grid;
+    align-content: end;
+    gap: 8px;
+    margin-bottom: 18px;
+    padding: clamp(18px, 3vw, 32px);
+    border-radius: 13px;
+    color: #f7f1ff;
+    background: #352052;
+}
+.feed-masthead .campus-feed-title {
+    margin: 0;
+    color: #fff;
+    font: 400 clamp(2.25rem, 4.4vw, 3.65rem)/1 var(--campus-display);
+    letter-spacing: -.035em;
+}
+.feed-masthead p { max-width: 32ch; color: #eadff7; }
+.feed-masthead svg { position: absolute; right: -10px; top: -1px; z-index: -1; width: min(44%, 260px); color: #aa87d8; opacity: .5; }
+.campus-redesign #tab-home .composer.card { background: #fff !important; border: 1px solid var(--border) !important; }
+.campus-redesign #tab-home .composer-prompt { background: #f6f2fa !important; }
+.campus-redesign .stories-section { padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+.campus-redesign .right-sidebar { gap: 14px; padding-top: 58px; }
+.campus-redesign .app-container .right-card { margin: 0; border: 1px solid var(--border); background: #fff; border-radius: 12px; }
+.campus-redesign .right-card h2 { margin-bottom: 8px; font-size: 1rem; }
+.campus-redesign .right-card p { color: var(--text-secondary); }
+.campus-redesign .right-sidebar .campus-announcement { margin: 0; }
+.campus-redesign #tab-home .post.card { background: transparent; }
+.campus-redesign #emptyFeed { padding: 20px 0; border-top: 1px solid var(--border); color: var(--muted); }
+.campus-redesign.dark-mode .site-header .logo { color: var(--text); }
+.campus-redesign.dark-mode .site-header .logo span { color: var(--accent); }
+.campus-redesign.dark-mode #tab-home .composer.card,
+.campus-redesign.dark-mode .app-container .right-card { background: var(--surface) !important; }
+.campus-redesign.dark-mode #tab-home .composer-prompt { background: var(--surface-hover) !important; }
+.campus-redesign.dark-mode .site-header .nav-link.active { background: var(--primary-light) !important; color: var(--accent) !important; }
+
+@media (min-width: 1060px) {
+    .campus-redesign { --nav-width: 224px; padding-left: var(--nav-width); }
+    .campus-redesign .site-header.sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: var(--nav-width);
+        border-right: 1px solid var(--border);
+        border-bottom: 0;
+        overflow-y: auto;
+    }
+    .campus-redesign .site-header-inner { display: grid; gap: 20px; padding: 23px 15px 16px; }
+    .campus-redesign .site-header .logo { margin-left: 6px; }
+    .campus-redesign .site-header .mobile-menu-button { display: none; }
+    .campus-redesign .site-header .campus-navigation {
+        position: static;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) !important;
+        width: auto;
+        max-height: none;
+        gap: 15px;
+        overflow: visible;
+        padding: 0;
+        border: 0;
+        box-shadow: none;
+    }
+    .campus-redesign .site-header .nav-link { min-height: 36px; }
+    .campus-redesign .site-header .sidebar-bottom { padding: 0; }
+    .campus-redesign .app-container { grid-template-columns: minmax(0, 1fr) minmax(205px, 25%); }
+    .campus-redesign .app-container:has(#tab-home:not(.active)) { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Moderator workspace */
+.workspace-bar { background: #fff; border-bottom: 1px solid var(--border); }
+.workspace-bar > div {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    width: min(100%, 1150px);
+    min-height: 68px;
+    margin-inline: auto;
+    padding: 8px clamp(14px, 3vw, 32px);
+}
+.workspace-bar form { margin-left: auto; }
+.workspace-bar .auth-secondary { white-space: nowrap; }
+.workspace-return { color: var(--accent); font-weight: 700; }
+.workspace-return:hover { text-decoration: underline; }
+.workspace-layout {
+    display: grid;
+    grid-template-columns: 211px minmax(0, 1fr);
+    align-items: start;
+    gap: 22px;
+    width: min(100%, 1150px);
+    margin: 0 auto;
+    padding: 29px clamp(14px, 3vw, 32px) 48px;
+}
+.workspace-heading {
+    grid-column: 1 / -1;
+    padding: clamp(20px, 4vw, 44px);
+    border-radius: 13px;
+    color: #fff;
+    background: #352052;
+}
+.workspace-heading h1 { font-size: clamp(1.85rem, 4vw, 2.75rem); line-height: 1.08; letter-spacing: -.035em; margin-bottom: 9px; }
+.workspace-heading p { color: #eadff7; }
+.workspace-index { position: sticky; top: 18px; display: grid; gap: 3px; padding: 8px 0; border-block: 1px solid var(--border); }
+.workspace-index a { padding: 11px 8px; border-radius: 6px; font-weight: 700; color: var(--accent); }
+.workspace-index a:hover { background: var(--primary-light); }
+.workspace-body { display: grid; gap: 16px; min-width: 0; }
+.workspace-section.campus-tools { margin: 0; padding: clamp(16px, 3vw, 26px); background: #fff; scroll-margin: 12px; }
+.workspace-section h2 { line-height: 1.2; font-size: 1.3rem; margin-bottom: 6px; }
+.workspace-section h3 { font-size: 1rem; }
+.workspace-section > p { color: var(--muted); }
+.workspace-records { padding-top: 12px; margin-top: 12px; border-top: 1px solid var(--border); color: var(--text-secondary); }
+.workspace-section #listingForm {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 13px;
+    padding: 16px 0 20px;
+    margin-block: 12px 16px;
+    border-block: 1px solid var(--border);
+}
+#listingForm label { font-weight: 700; }
+#listingForm :is(input, select, textarea) { margin-top: 4px; border-color: #a99cb7; font: inherit; font-weight: 400; }
+#listingForm textarea { resize: vertical; }
+.field-wide { grid-column: 1 / -1; }
+.workspace-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 4px; }
+.workspace-actions .primary-button { min-height: 44px; border-radius: 8px !important; box-shadow: none !important; }
+
+@media (max-width: 900px) {
+    .signin-entry { gap: 38px; }
+    .campus-redesign .right-sidebar { padding-top: 0; }
+}
+@media (max-width: 700px) {
+    .signin-redesign { display: block; }
+    .signin-shell { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+    .signin-entry { padding: 27px 23px; }
+    .signin-entry .auth-content { width: 100%; }
+    .signin-feature { padding: 24px 23px; }
+    .campus-print { display: none; }
+    .signin-feature h2 { font-size: 1.8rem; }
+    .workspace-layout { grid-template-columns: minmax(0, 1fr); gap: 13px; padding-top: 16px; }
+    .workspace-index { position: static; display: flex; flex-wrap: wrap; }
+    .workspace-index a { padding-block: 8px; }
+    .workspace-bar > div { gap: 12px; }
+    .workspace-bar .campora-brand { font-size: 1.25rem; }
+    .workspace-bar .campora-brand img { width: 26px; height: 26px; margin-right: 5px; }
+    .workspace-bar .auth-secondary { padding-inline: 9px; }
+    .feed-masthead { min-height: 145px; }
+}
+@media (max-width: 425px) {
+    .workspace-section #listingForm { grid-template-columns: minmax(0, 1fr); }
+    .campus-redesign #tab-home .composer-actions { flex-wrap: wrap; }
+}

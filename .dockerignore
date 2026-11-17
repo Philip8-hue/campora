@@ -1,0 +1,7 @@
+.git
+.env*
+.campora-data/
+.campora-qa/
+node_modules/
+*.mp4
+**/*.mp4

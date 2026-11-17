@@ -1,0 +1,7 @@
+{
+  "name": "campora",
+  "private": true,
+  "engines": { "node": ">=24" },
+  "scripts": { "start": "node server.mjs" },
+  "dependencies": { "pg": "^8.16.3" }
+}
