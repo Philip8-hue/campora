@@ -38,7 +38,7 @@ async function campusAction(button, action) {
     button.disabled = true;
     const status = document.getElementById("campus-status");
     if (status) status.hidden = true;
-    const dialog = button.closest('[role="dialog"], .profile-modal');
+    const dialog = button.closest('dialog, [role="dialog"], .profile-modal');
     dialog?.querySelector(".campus-action-error")?.remove();
     try { await action(); }
     catch (error) {

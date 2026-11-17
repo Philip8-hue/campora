@@ -131,7 +131,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
             media.src = previewURL;
             media.className = "composer-preview-media";
-            preview.appendChild(media);
+            preview.append(media, campusButton("Remove attachment", () => {
+                URL.revokeObjectURL(previewURL);
+                previewURL = null;
+                selectedFile = null;
+                fileInput.value = "";
+                preview.replaceChildren();
+                fileInput.closest("label").scrollIntoView({ block: "nearest" });
+                textarea.focus();
+            }));
         });
 
         form.addEventListener("submit", event => {
@@ -172,7 +180,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const post = document.createElement("article");
         post.className = "post card";
         post.dataset.author = authorName;
-        post.dataset.authorId = record.own ? "current-user" : "";
+        post.dataset.authorId = record.authorId || "";
         post.dataset.postId = id;
         post.dataset.anonymous = String(anonymous);
 
@@ -437,10 +445,63 @@ function connectPostActions(post, record) {
         });
 
         menu.appendChild(reportButton);
+        if (record.own) menu.append(campusButton("Edit caption", () => {
+            menu.remove();
+            editCaption(post.querySelector(".post-header"), record.text, 3000, async value => {
+                const updated = await campusApi("posts/" + record.id + "/edit", { text: value });
+                record.text = updated.text;
+                const caption = post.querySelector(".post-text");
+                if (caption) {
+                    caption.textContent = updated.text;
+                    caption.hidden = !updated.text;
+                } else if (updated.text) {
+                    const paragraph = document.createElement("p");
+                    paragraph.className = "post-text";
+                    paragraph.textContent = updated.text;
+                    post.querySelector(".post-header").after(paragraph);
+                }
+            });
+        }));
+        if (record.own || window.camporaModerator) menu.append(campusButton("Delete post", async () => {
+            if (!window.confirm("Permanently delete this post and its comments?")) return;
+            await campusApi("posts/" + record.id + "/delete", {});
+            document.querySelectorAll("[data-post-id]").forEach(item => {
+                if (item.dataset.postId === record.id) item.remove();
+            });
+            await window.refreshCampusFeed();
+        }));
+        if (!record.own && record.authorId) {
+            for (const [kind, label] of [["mute", "Mute posts from "], ["block", "Block "]]) {
+                menu.append(campusButton(label + record.author, async () => {
+                    if (kind === "block" && !window.confirm("Block " + record.author + " and remove your connection?")) return;
+                    await campusApi("people-preferences", { peer: record.authorId, kind, enabled: true });
+                    document.querySelectorAll("[data-post-id]").forEach(item => {
+                        if (item.dataset.authorId === record.authorId) item.remove();
+                    });
+                    await window.refreshCampusFeed();
+                }));
+            }
+        }
         post.querySelector(".post-header").after(menu);
     });
 }
 
+    function editCaption(anchor, value, maximum, save) {
+        if (anchor.nextElementSibling?.classList.contains("caption-editor")) return;
+        const editor = document.createElement("div");
+        editor.className = "caption-editor";
+        const input = document.createElement("textarea");
+        input.setAttribute("aria-label", "Caption");
+        input.value = value;
+        input.maxLength = maximum;
+        input.rows = 3;
+        editor.append(input, campusButton("Save caption", async () => {
+            await save(input.value);
+            editor.remove();
+        }), campusButton("Cancel", () => editor.remove()));
+        anchor.after(editor);
+        input.focus();
+    }
 
     function actionsAfterPost(post) {
         return post.querySelector(".post-actions");
@@ -487,8 +548,9 @@ function connectPostActions(post, record) {
     }
 
     function openStoryViewer(story) {
-        const viewer = document.createElement("div");
+        const viewer = document.createElement("dialog");
         viewer.className = "story-viewer";
+        viewer.setAttribute("aria-label", "Story by " + story.author);
 
         const topBar = document.createElement("div");
         topBar.className = "story-viewer-top";
@@ -515,8 +577,33 @@ function connectPostActions(post, record) {
             media.playsInline = true;
         }
 
-        viewer.append(topBar, media);
+        const caption = document.createElement("p");
+        caption.className = "story-caption";
+        caption.textContent = story.caption;
+        caption.hidden = !story.caption;
+        viewer.append(topBar, media, caption);
+        if (story.own) {
+            const controls = document.createElement("div");
+            controls.className = "story-controls";
+            controls.append(campusButton("Edit caption", () => {
+                editCaption(controls, story.caption, 250, async value => {
+                    await campusApi("stories", { action: "edit", id: story.id, caption: value });
+                    story.caption = value.trim();
+                    caption.textContent = story.caption;
+                    caption.hidden = !story.caption;
+                    await refreshStories();
+                });
+            }), campusButton("Delete story", async () => {
+                if (!window.confirm("Permanently delete this story?")) return;
+                await campusApi("stories", { action: "delete", id: story.id });
+                viewer.remove();
+                await refreshStories();
+            }));
+            viewer.append(controls);
+        }
         document.body.appendChild(viewer);
+        viewer.showModal();
+        viewer.addEventListener("close", () => viewer.remove());
 
         close.addEventListener("click", () => viewer.remove());
 
@@ -539,11 +626,45 @@ function connectPostActions(post, record) {
 
     storyUpload?.addEventListener("change", () => {
         const file = storyUpload.files[0];
-
-        if (file) campusUpload(file).then(upload => campusApi("stories", { file: upload })).then(refreshStories).catch(campusError);
-
         // Allow the same file to be selected again.
         storyUpload.value = "";
+        if (!file) return;
+        if (file.size > 5_000_000 || !/^(image|video)\//.test(file.type)) {
+            campusError(new Error("Choose a photo or video smaller than 5 MB."));
+            return;
+        }
+        const dialog = document.createElement("dialog");
+        dialog.className = "composer-modal story-composer";
+        dialog.setAttribute("aria-labelledby", "storyComposerTitle");
+        const title = document.createElement("h2");
+        title.id = "storyComposerTitle";
+        title.textContent = "Preview your story";
+        const isVideo = file.type.startsWith("video/");
+        const preview = document.createElement(isVideo ? "video" : "img");
+        const source = URL.createObjectURL(file);
+        preview.src = source;
+        preview.className = "composer-preview-media";
+        if (isVideo) { preview.controls = true; preview.playsInline = true; }
+        else preview.alt = "Story preview";
+        const caption = document.createElement("textarea");
+        caption.setAttribute("aria-label", "Story caption");
+        caption.placeholder = "Add a caption (optional)";
+        caption.maxLength = 250;
+        caption.rows = 2;
+        const actions = document.createElement("div");
+        actions.className = "auth-actions";
+        actions.append(campusButton("Share story", async () => {
+            await campusApi("stories", { file: await campusUpload(file), caption: caption.value });
+            dialog.close();
+            await refreshStories();
+        }), campusButton("Cancel", () => dialog.close()));
+        dialog.append(title, preview, caption, actions);
+        dialog.addEventListener("close", () => {
+            URL.revokeObjectURL(source);
+            dialog.remove();
+        }, { once: true });
+        document.body.appendChild(dialog);
+        dialog.showModal();
     });
 
     document.getElementById("createPostBtn")
@@ -637,6 +758,8 @@ document.addEventListener("DOMContentLoaded", () => {
             loadReels().catch(campusError);
         } else if (targetName === "messages") {
             loadStudents().catch(campusError);
+        } else if (targetName === "settings") {
+            loadPeoplePreferences().catch(campusError);
         } else if (targetName === "live") {
             showMessages("campus-live", liveChatMessages, true).catch(campusError);
         } else if (targetName === "communities") {
@@ -670,9 +793,8 @@ document.addEventListener("DOMContentLoaded", () => {
     let searchableData = [];
 
     async function loadSearch() {
-        const [students, posts, listings] = await Promise.all([campusApi("students"), campusApi("feed"), campusApi("listings")]);
+        const [posts, listings] = await Promise.all([campusApi("feed"), campusApi("listings")]);
         searchableData = [
-            ...students.map(student => ({ type: "students", name: student.name, subtitle: [student.username && "@" + student.username, student.department || "Anchor University"].filter(Boolean).join(" · "), tag: "Student" })),
             ...posts.map(post => ({ type: "posts", name: post.text, subtitle: post.author, tag: "Post" })),
             ...[...document.querySelectorAll(".community-title")].map(title => ({ type: "communities", name: title.textContent, subtitle: "Anchor University", tag: "Community" })),
             ...listings.filter(listing => listing.kind === "opportunity").map(listing => ({ type: "opportunities", name: listing.title, subtitle: listing.details, tag: "Opportunity" }))
@@ -680,15 +802,25 @@ document.addEventListener("DOMContentLoaded", () => {
         renderSearchResults(searchInput.value);
     }
 
-    function renderSearchResults(query = "") {
+    let searchGeneration = 0;
+    async function renderSearchResults(query = "") {
         if (!searchGrid) return;
+        const generation = ++searchGeneration;
         const q = query.toLowerCase().trim();
-
+        const students = q.length >= 2 && ["all", "students"].includes(activeSearchFilter)
+            ? await campusApi("students?name=" + encodeURIComponent(q)).catch(error => {
+                if (generation === searchGeneration) campusError(error);
+                return [];
+            }) : [];
+        if (generation !== searchGeneration) return;
         const filtered = searchableData.filter(item => {
             const matchesType = (activeSearchFilter === "all" || item.type === activeSearchFilter);
             const matchesQuery = !q || item.name.toLowerCase().includes(q) || item.subtitle.toLowerCase().includes(q);
             return matchesType && matchesQuery;
         });
+        filtered.unshift(...students.map(student => ({
+            student, name: student.name, subtitle: student.department || "Anchor University", tag: "Student"
+        })));
 
         searchGrid.replaceChildren();
 
@@ -699,7 +831,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <p style="margin-top: 10px;"></p>
                 </div>
             `;
-            searchGrid.querySelector("p").textContent = `No campus results found for "${query}". Try searching another name or keyword.`;
+            searchGrid.querySelector("p").textContent = q ? `No campus results found for "${query}".` : "Enter a display name to find a student.";
             return;
         }
 
@@ -713,11 +845,16 @@ document.addEventListener("DOMContentLoaded", () => {
             description.textContent = item.tag + " · " + item.subtitle;
             content.append(title, description);
             card.append(content);
+            if (item.student) card.append(campusButton("Open in Messages", () => {
+                document.querySelector(".messages-search-bar input").value = item.student.name;
+                peer = item.student.id;
+                switchTab("messages");
+            }));
             searchGrid.appendChild(card);
         });
 
         if (searchHeader) {
-            searchHeader.textContent = q ? `Results for "${query}" (${filtered.length})` : "Suggested Profiles & Campus Hubs";
+            searchHeader.textContent = q ? `Results for "${query}" (${filtered.length})` : "Campus search";
         }
     }
 
@@ -750,6 +887,40 @@ document.addEventListener("DOMContentLoaded", () => {
     const liveChatForm = document.getElementById("liveChatForm");
     const liveChatMessages = document.getElementById("liveChatMessages");
     let peer = null;
+    let chatState = "";
+    let directoryVersion = 0;
+    let directorySignature = "";
+    const chatRelationship = document.getElementById("chatRelationship");
+    const studentSearch = document.querySelector(".messages-search-bar input");
+
+    function showRelationship(student) {
+        const state = student?.friendship || "";
+        const signature = (student?.id || "") + ":" + state;
+        if (chatState === signature) return;
+        chatState = signature;
+        chatRelationship.replaceChildren();
+        chatMessagesArea.replaceChildren();
+        chatSendForm.hidden = state !== "friends";
+        document.getElementById("activeChatName").textContent = student?.name || "Choose a student";
+        document.getElementById("activeChatAvatar").textContent = student?.name[0] || "A";
+        if (!student) return;
+        const message = document.createElement("p");
+        message.textContent = { none: "Send a friend request to start chatting.", sent: "Friend request sent.", received: "This student sent you a friend request.", friends: "Connected" }[state];
+        chatRelationship.append(message);
+        const actions = { none: [["request", "Send friend request"]], sent: [["cancel", "Cancel request"]],
+            received: [["accept", "Accept request"], ["decline", "Decline"]], friends: [] }[state];
+        for (const [action, label] of actions) {
+            chatRelationship.append(campusButton(label, async () => {
+                await campusApi("friendships", { peer: student.id, action });
+                await loadStudents();
+            }));
+        }
+        chatRelationship.append(campusButton("Block", async () => {
+            if (!window.confirm("Block " + student.name + " and remove your connection?")) return;
+            await campusApi("people-preferences", { peer: student.id, kind: "block", enabled: true });
+            await loadStudents();
+        }));
+    }
 
     async function showMessages(recipient, container, live = false) {
         const messages = await campusApi("messages?peer=" + encodeURIComponent(recipient));
@@ -767,32 +938,57 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function loadStudents() {
-        const students = await campusApi("students");
+        const version = ++directoryVersion;
+        const query = studentSearch.value.trim();
+        const [contacts, matches] = await Promise.all([
+            campusApi("students?contacts=1"),
+            query.length >= 2 ? campusApi("students?name=" + encodeURIComponent(query)) : []
+        ]);
+        if (version !== directoryVersion) return;
+        const students = [...new Map([...contacts, ...matches].map(student => [student.id, student])).values()];
+        const selected = students.find(student => student.id === peer);
+        showRelationship(selected);
+        const signature = JSON.stringify([peer, students, query]);
+        if (directorySignature === signature) return;
+        directorySignature = signature;
         const list = document.getElementById("chatThreadList");
-        const search = document.querySelector(".messages-search-bar input");
-        function showStudents() {
-            const visible = students.filter(student => student.name.toLowerCase().includes(search.value.trim().toLowerCase()));
-            list.replaceChildren(...visible.map(student => {
+        list.replaceChildren(...students.map(student => {
                 const button = document.createElement("button");
                 button.type = "button";
                 button.className = "chat-thread-item";
                 button.textContent = student.name + (student.department ? " · " + student.department : "");
+                if (student.friendship === "received") button.textContent += " · Friend request";
                 button.classList.toggle("active", peer === student.id);
                 button.addEventListener("click", () => {
                     peer = student.id;
-                    chatMessagesArea.replaceChildren();
-                    document.getElementById("activeChatName").textContent = student.name;
-                    document.getElementById("activeChatAvatar").textContent = student.name[0];
-                    chatSendForm.hidden = false;
-                    showStudents();
-                    showMessages(peer, chatMessagesArea).catch(campusError);
+                    list.querySelector(".active")?.classList.remove("active");
+                    button.classList.add("active");
+                    showRelationship(student);
+                    if (student.friendship === "friends") showMessages(peer, chatMessagesArea).catch(campusError);
                 });
                 return button;
             }));
-            if (!visible.length) list.textContent = "No students found.";
-        }
-        search.oninput = showStudents;
-        showStudents();
+        if (!students.length) list.textContent = query.length >= 2 ? "No matching students." : "Search by display name to find someone.";
+        if (selected?.friendship === "friends") await showMessages(selected.id, chatMessagesArea);
+    }
+    let studentSearchTimer;
+    studentSearch.addEventListener("input", () => {
+        clearTimeout(studentSearchTimer);
+        studentSearchTimer = setTimeout(() => loadStudents().catch(campusError), 250);
+    });
+
+    async function loadPeoplePreferences() {
+        const preferences = await campusApi("people-preferences");
+        const list = document.getElementById("peoplePreferences");
+        list.replaceChildren(...preferences.map(person => {
+            const row = listingRow({ title: person.name || person.username || "Campora account", details: person.kind === "block" ? "Blocked" : "Posts muted" });
+            row.append(campusButton(person.kind === "block" ? "Unblock" : "Show posts again", async () => {
+                await campusApi("people-preferences", { peer: person.id, kind: person.kind, enabled: false });
+                await loadPeoplePreferences();
+            }));
+            return row;
+        }));
+        if (!preferences.length) list.textContent = "No muted or blocked accounts.";
     }
 
     function connectChat(form, input, recipient, container, live) {
@@ -863,8 +1059,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     setInterval(() => {
         if (document.hidden) return;
-        if (document.getElementById("tab-messages").classList.contains("active") && peer) {
-            showMessages(peer, chatMessagesArea).catch(campusError);
+        if (document.getElementById("tab-messages").classList.contains("active")) {
+            loadStudents().then(() => {
+                if (!chatSendForm.hidden && peer) return showMessages(peer, chatMessagesArea);
+            }).catch(campusError);
         } else if (document.getElementById("tab-live").classList.contains("active")) {
             showMessages("campus-live", liveChatMessages, true).catch(campusError);
         }

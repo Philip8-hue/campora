@@ -48,6 +48,11 @@ async function loadModeration() {
         };
         row.append(count, campusButton(report.hidden ? "Restore post" : "Hide post", () => review(report.hidden ? "restore" : "hide")));
         if (!report.hidden) row.append(campusButton("Dismiss reports", () => review("dismiss")));
+        row.append(campusButton("Delete post", async () => {
+            if (!window.confirm("Permanently delete this post and its comments?")) return;
+            await campusApi("posts/" + report.id + "/delete", {});
+            await loadModeration();
+        }));
         return row;
     }));
     if (!records.reports.length) reports.textContent = "No reports to review.";
@@ -62,6 +67,33 @@ async function loadModeration() {
     }));
     if (!broadcast.rooms.length) streams.textContent = "No active broadcasts.";
 }
+
+async function loadAccounts(offset = 0) {
+    const { accounts, hasMore, ownId } = await campusApi("moderation/users?offset=" + offset);
+    const list = document.getElementById("moderatorAccounts");
+    list.replaceChildren(...accounts.map(account => {
+        const row = listingRow({
+            title: account.name || account.username || "Campora account",
+            details: account.email + (account.disabled ? " · Disabled" : " · Active")
+        });
+        if (account.id !== ownId) row.append(campusButton(account.disabled ? "Restore access" : "Disable account", async () => {
+            if (!account.disabled && !window.confirm("Disable this account and end its current sessions?")) return;
+            await campusApi("moderation/users", { id: account.id, disabled: !account.disabled });
+            await loadAccounts(offset);
+        }));
+        return row;
+    }));
+    if (!accounts.length) list.textContent = "No accounts found.";
+    const pages = document.getElementById("moderatorAccountPages");
+    pages.replaceChildren();
+    if (offset > 0) pages.append(campusButton("Previous", () => loadAccounts(offset - 50)));
+    if (hasMore) pages.append(campusButton("Next", () => loadAccounts(offset + 50)));
+}
+
+loadAccounts().catch(error => {
+    document.getElementById("moderatorAccounts").textContent = "Couldn’t load accounts.";
+    campusError(error);
+});
 
 loadModeration().catch(error => {
     for (const id of ["moderatorReports", "moderatorListings", "moderatorBroadcasts"]) {

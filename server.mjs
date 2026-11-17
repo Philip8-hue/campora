@@ -84,6 +84,7 @@ export async function createCamporaServer({ databasePath, databaseUrl, origin, a
     await db.exec(`
         CREATE TABLE IF NOT EXISTS accounts (email TEXT PRIMARY KEY, id TEXT UNIQUE NOT NULL);
         CREATE TABLE IF NOT EXISTS unverified_accounts (email TEXT PRIMARY KEY);
+        CREATE TABLE IF NOT EXISTS disabled_accounts (id TEXT PRIMARY KEY);
         CREATE TABLE IF NOT EXISTS passwords (email TEXT PRIMARY KEY, salt TEXT NOT NULL, hash TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS challenges (
             email TEXT PRIMARY KEY, mode TEXT NOT NULL, proof TEXT NOT NULL,
@@ -99,10 +100,10 @@ export async function createCamporaServer({ databasePath, databaseUrl, origin, a
     const removeChallenge = db.prepare('DELETE FROM challenges WHERE email = ? AND proof = ?');
     const session = db.prepare(`SELECT sessions.email, accounts.id,
         NOT EXISTS (SELECT 1 FROM unverified_accounts WHERE unverified_accounts.email = sessions.email) AS verified
-        FROM sessions JOIN accounts USING (email) WHERE token = ? AND expires > ?`);
+        FROM sessions JOIN accounts USING (email) WHERE token = ? AND expires > ?
+        AND NOT EXISTS (SELECT 1 FROM disabled_accounts WHERE disabled_accounts.id = accounts.id)`);
     const unverifiedAccount = db.prepare('SELECT 1 FROM unverified_accounts WHERE email = ?');
-    const credential = db.prepare('SELECT salt, hash FROM passwords WHERE email = ?');
-    const accountByEmail = db.prepare('SELECT id FROM accounts WHERE email = ?');
+    const credential = db.prepare('SELECT salt, hash FROM passwords JOIN accounts USING (email) WHERE email = ? AND NOT EXISTS (SELECT 1 FROM disabled_accounts WHERE disabled_accounts.id = accounts.id)');
     const dummySalt = randomBytes(16).toString('hex');
     const dummyHash = randomBytes(32);
 
@@ -283,6 +284,8 @@ export async function createCamporaServer({ databasePath, databaseUrl, origin, a
                 const matches = timingSafeEqual(actual, saved ? Buffer.from(saved.hash, 'hex') : dummyHash);
                 if (matches && saved && approvedStudent(email)) {
                     const newToken = await db.transaction(async () => {
+                        await db.prepare('SELECT id FROM accounts WHERE email = ?' + (db.postgres ? ' FOR UPDATE' : '')).get(email);
+                        if (!(await credential.get(email))) return null;
                         const current = await db.prepare('SELECT hash FROM passwords WHERE email = ?' + (db.postgres ? ' FOR UPDATE' : '')).get(email);
                         if (current?.hash !== saved.hash) return null;
                         await db.prepare('DELETE FROM limits WHERE address = ?').run('password:' + email);
@@ -346,11 +349,11 @@ export async function createCamporaServer({ databasePath, databaseUrl, origin, a
         let result;
         try {
             result = await db.transaction(async () => {
+                const existingAccount = await db.prepare('SELECT id FROM accounts WHERE email = ?' + (db.postgres ? ' FOR UPDATE' : '')).get(email);
                 if (pending) {
                     const consumed = await db.prepare('DELETE FROM challenges WHERE email = ? AND proof = ? AND expires > ? AND attempts < 5').run(email, pending.proof, Date.now());
                     if (!consumed.changes) return { status: 400, error: 'That code is invalid or expired. Request a new code.' };
                 }
-                const existingAccount = await accountByEmail.get(email);
                 if (mode === 'signup') {
                     if (existingAccount) return { status: 409, error: 'This email already has an account. Sign in or use Set or reset password.' };
                     if (typeof input.profile?.username !== 'string' || typeof input.profile?.name !== 'string') {
@@ -364,6 +367,8 @@ export async function createCamporaServer({ databasePath, databaseUrl, origin, a
                     if (profile.error) return profile;
                 } else if (!existingAccount) {
                     return { status: 400, error: 'There is no account for this email. Use Create account to sign up.' };
+                } else if (await db.prepare('SELECT id FROM disabled_accounts WHERE id = ?').get(existingAccount.id)) {
+                    return { status: 403, error: 'This account is disabled. Contact Campora support.' };
                 }
                 await db.prepare('INSERT INTO passwords VALUES (?, ?, ?) ON CONFLICT(email) DO UPDATE SET salt=excluded.salt, hash=excluded.hash').run(email, newSalt, hash);
                 if (pending) await db.prepare('DELETE FROM unverified_accounts WHERE email = ?').run(email);

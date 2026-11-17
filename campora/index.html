@@ -174,7 +174,7 @@
                 <div class="search-container">
                     <div class="search-input-wrap">
                         
-                        <input type="text" id="mainSearchInput" aria-label="Search campus" placeholder="Search students, groups, topics, or course codes (e.g. CSC 301)...">
+                        <input type="search" id="mainSearchInput" aria-label="Search campus" placeholder="Search by display name or campus keyword">
                         <button class="primary-button" id="executeSearchBtn" style="padding: 6px 14px; font-size: 13px;">Search</button>
                     </div>
 
@@ -188,7 +188,7 @@
                 </div>
 
                 <div class="section-heading">
-                    <h3 id="searchResultsHeader">Suggested Profiles & Hubs</h3>
+                    <h3 id="searchResultsHeader">Campus search</h3>
                 </div>
 
                 <div class="search-results-grid" id="searchResultsContainer">
@@ -323,13 +323,13 @@
             <div id="tab-messages" class="tab-page">
                 <div class="section-heading">
                     <h2>Direct Campus Messages</h2>
-                    <span>Private chat with coursemates and peer study groups</span>
+                    <span>Find students by display name and connect before messaging.</span>
                 </div>
 
                 <div class="messages-box">
                     <div class="messages-sidebar">
                         <div class="messages-search-bar">
-                            <input type="text" placeholder="Find a student" aria-label="Find a student">
+                            <input type="search" placeholder="Search by display name" aria-label="Search by display name">
                         </div>
                         <div class="chat-thread-list" id="chatThreadList"></div>
                     </div>
@@ -343,6 +343,7 @@
                             </div>
                         </div>
 
+                        <div id="chatRelationship" class="campus-listing" aria-live="polite"></div>
                         <div class="chat-messages-scroll" id="chatMessagesArea"></div>
 
                         <form id="chatSendForm" class="chat-composer-bar">
@@ -465,6 +466,11 @@
                             <p>Anchor University, Lagos</p>
                         </div>
 
+                        <div class="settings-group">
+                            <h3>Muted and blocked accounts</h3>
+                            <p>Manage whose posts you see and who can contact you.</p>
+                            <div id="peoplePreferences"></div>
+                        </div>
                         <div class="settings-group">
                             <h3>Anonymous posts</h3>
                             <p>Choose Post anonymously in the composer to hide your name from other students.</p>

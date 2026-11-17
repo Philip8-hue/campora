@@ -12,7 +12,10 @@ const directory = new URL('./.vercel-edge/', import.meta.url);
 mkdirSync(directory, { recursive: true });
 const config = {
     $schema: 'https://openapi.vercel.sh/vercel.json',
-    rewrites: [{ source: '/:path*', destination: backend.origin + '/:path*' }]
+    rewrites: [
+        { source: '/', destination: backend.origin + '/' },
+        { source: '/:path*', destination: backend.origin + '/:path*' }
+    ]
 };
 writeFileSync(new URL('vercel.json', directory), JSON.stringify(config, null, 2) + '\n');
 console.log('Vercel deployment directory: ' + fileURLToPath(directory));

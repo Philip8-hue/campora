@@ -33,6 +33,15 @@ export async function createCampusOperations(db, iceServers, approvedStudent) {
         }
         if (path.startsWith('/api/moderation')) {
             if (!moderator) return forbidden;
+            if (method === 'GET' && path === '/api/moderation/users') {
+                const offset = Number(params.get('offset') ?? 0);
+                if (!Number.isSafeInteger(offset) || offset < 0 || offset > 10_000_000) return invalid;
+                const accounts = await db.prepare(`SELECT accounts.id, accounts.email, profiles.name, profiles.username,
+                    disabled_accounts.id IS NOT NULL AS disabled FROM accounts
+                    LEFT JOIN profiles USING (id) LEFT JOIN disabled_accounts USING (id)
+                    ORDER BY accounts.email LIMIT 51 OFFSET ?`).all(offset);
+                return { data: { accounts: accounts.slice(0, 50), hasMore: accounts.length > 50, ownId: owner } };
+            }
             if (method === 'GET' && path === '/api/moderation') {
                 return { data: {
                     listings: await db.prepare('SELECT * FROM listings ORDER BY date, title').all(),
@@ -42,6 +51,22 @@ export async function createCampusOperations(db, iceServers, approvedStudent) {
                 } };
             }
             if (method !== 'POST') return missing;
+            if (path === '/api/moderation/users') {
+                if (typeof input?.id !== 'string' || typeof input.disabled !== 'boolean' || input.id === owner) return invalid;
+                return db.transaction(async () => {
+                    const account = await db.prepare('SELECT email FROM accounts WHERE id = ?' + (db.postgres ? ' FOR UPDATE' : '')).get(input.id);
+                    if (!account) return missing;
+                    if (input.disabled) {
+                        await db.prepare('INSERT INTO disabled_accounts VALUES (?) ON CONFLICT DO NOTHING').run(input.id);
+                        await db.prepare('DELETE FROM sessions WHERE email = ?').run(account.email);
+                        await db.prepare('DELETE FROM challenges WHERE email = ?').run(account.email);
+                    } else {
+                        await db.prepare('DELETE FROM disabled_accounts WHERE id = ?').run(input.id);
+                    }
+                    await db.prepare('INSERT INTO moderation_log(moderator, target, action, created) VALUES (?, ?, ?, ?)').run(owner, input.id, input.disabled ? 'disable-account' : 'enable-account', now);
+                    return ok;
+                });
+            }
             if (path === '/api/moderation/listings') {
                 if (!['event', 'opportunity'].includes(input?.kind) || typeof input.title !== 'string' ||
                     !input.title.trim() || input.title.length > 120 || typeof input.details !== 'string' ||
@@ -63,14 +88,15 @@ export async function createCampusOperations(db, iceServers, approvedStudent) {
                 return ok;
             }
             if (path === '/api/moderation/reports' && ['hide', 'restore', 'dismiss'].includes(input?.action) && typeof input.id === 'string') {
-                if (!await db.prepare('SELECT 1 FROM reports WHERE post = ?').get(input.id)) return missing;
-                await db.transaction(async () => {
+                return db.transaction(async () => {
+                    const post = await db.prepare('SELECT id FROM posts WHERE id = ?' + (db.postgres ? ' FOR UPDATE' : '')).get(input.id);
+                    if (!post || !await db.prepare('SELECT 1 FROM reports WHERE post = ?').get(input.id)) return missing;
                     if (input.action === 'hide') await db.prepare('INSERT INTO hidden_posts VALUES (?) ON CONFLICT DO NOTHING').run(input.id);
                     else if (input.action === 'restore') await db.prepare('DELETE FROM hidden_posts WHERE id = ?').run(input.id);
                     else await db.prepare('DELETE FROM reports WHERE post = ? AND NOT EXISTS (SELECT 1 FROM hidden_posts WHERE id = ?)').run(input.id, input.id);
                     await db.prepare('INSERT INTO moderation_log(moderator, target, action, created) VALUES (?, ?, ?, ?)').run(owner, input.id, input.action, now);
+                    return ok;
                 });
-                return ok;
             }
             return missing;
         }

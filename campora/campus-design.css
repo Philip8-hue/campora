@@ -243,6 +243,43 @@
 .workspace-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 4px; }
 .workspace-actions .primary-button { min-height: 44px; border-radius: 8px !important; box-shadow: none !important; }
 
+.caption-editor, .story-composer { padding: 16px; }
+.caption-editor textarea, .story-composer textarea {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    resize: vertical;
+}
+.caption-editor button, #chatRelationship button { margin: 4px 6px 0 0; }
+#chatRelationship { padding-inline: 14px; }
+#chatRelationship:empty { display: none; }
+.story-composer { margin: auto; max-width: min(520px, calc(100vw - 24px)); max-height: 90dvh; }
+.story-composer::backdrop { background: #221934b3; }
+.story-composer .composer-preview-media { display: block; max-width: 100%; max-height: 44dvh; margin: 12px auto; }
+dialog.story-viewer {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    border: 0;
+    flex-direction: column;
+    gap: 8px;
+    color: #fff;
+    overflow-y: auto;
+}
+.story-viewer .story-viewer-media { max-height: 60dvh; }
+.story-caption { max-width: 52ch; overflow-wrap: anywhere; text-align: center; }
+.story-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.story-viewer .caption-editor { width: min(100%, 450px); }
+
 @media (max-width: 900px) {
     .signin-entry { gap: 38px; }
     .campus-redesign .right-sidebar { padding-top: 0; }
