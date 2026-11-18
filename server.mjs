@@ -40,6 +40,7 @@ const pages = new Map([
     ['/admin', asset('admin.html')]
 ]);
 const signinPage = asset('signin.html');
+const aboutPage = asset('about.html');
 
 export function createBrevoSender(apiKey, from, send = fetch) {
     return async (email, code) => {
@@ -144,6 +145,16 @@ export async function createCamporaServer({ databasePath, databaseUrl, origin, a
             await db.prepare('SELECT id FROM accounts LIMIT 1').get();
             return json(res, 200, { ok: true });
         }
+        if (req.method === 'GET' && path === '/about') return reply(res, 200, aboutPage, 'text/html; charset=utf-8');
+        if (req.method === 'GET' && path === '/robots.txt') {
+            return reply(res, 200, 'User-agent: *\nAllow: /about\nAllow: /signin\nDisallow: /api/\nDisallow: /auth/\nDisallow: /admin\nDisallow: /setup\nDisallow: /profile.html\nSitemap: ' + origin + '/sitemap.xml\n');
+        }
+        if (req.method === 'GET' && path === '/sitemap.xml') {
+            const publicOrigin = origin.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
+            return reply(res, 200, '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>' + publicOrigin + '/about</loc></url><url><loc>' + publicOrigin + '/signin</loc></url></urlset>', 'application/xml; charset=utf-8');
+        }
+        if (path !== '/signin') res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+        else if (url.searchParams.has('next')) res.setHeader('X-Robots-Tag', 'noindex, nofollow');
 
         if (path.startsWith('/api/')) {
             if (!signedIn) return json(res, 401, { error: 'Log in to continue.' });

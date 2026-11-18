@@ -1067,7 +1067,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const selected = students.find(student => student.id === peer);
         showRelationship(selected);
         const signature = JSON.stringify([peer, students, query]);
-        if (directorySignature === signature) return;
+        if (directorySignature === signature) {
+            if (selected && (selected.followed || selected.followsYou)) await showMessages(selected.id, chatMessagesArea);
+            return;
+        }
         directorySignature = signature;
         const list = document.getElementById("chatThreadList");
         list.replaceChildren(...students.map(student => {
@@ -1220,16 +1223,26 @@ document.addEventListener("DOMContentLoaded", () => {
         await loadNotifications();
     }));
 
-    setInterval(() => {
+    let refreshingChat = false;
+    async function refreshOpenChat() {
         if (document.hidden) return;
-        if (document.getElementById("tab-messages").classList.contains("active")) {
-            loadStudents().then(() => {
-                if (!chatSendForm.hidden && peer) return showMessages(peer, chatMessagesArea);
-            }).catch(campusError);
-        } else if (document.getElementById("tab-live").classList.contains("active")) {
-            showMessages("campus-live", liveChatMessages, true).catch(campusError);
+        if (refreshingChat) return;
+        refreshingChat = true;
+        try {
+            if (document.getElementById("tab-messages").classList.contains("active")) {
+                await loadStudents();
+            } else if (document.getElementById("tab-live").classList.contains("active")) {
+                await showMessages("campus-live", liveChatMessages, true);
+            }
+        } catch (error) {
+            campusError(error);
+        } finally {
+            refreshingChat = false;
         }
-    }, 4000);
+    }
+    setInterval(refreshOpenChat, 2500);
+    document.addEventListener("visibilitychange", refreshOpenChat);
+    window.addEventListener("online", refreshOpenChat);
 
     // ---------- MY PROFILE & SETTINGS SYNC ----------
     const CAMPUS_NAME = "Anchor University, Lagos";
