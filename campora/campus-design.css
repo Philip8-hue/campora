@@ -1,4 +1,16 @@
 /* Shared campus identity */
+.post-profile-link { font-weight: 700; text-underline-offset: 3px; }
+.post-profile-link:hover { text-decoration: underline; }
+.repost-credit { color: var(--muted); margin-bottom: 8px; }
+.profile-page-container img { max-width: 100%; }
+#publicProfilePosts img, #publicProfilePosts video { display: block; max-width: 100%; max-height: 65dvh; margin-block: 12px; }
+.profile-page-body [hidden] { display: none !important; }
+.emoji-picker { position: relative; display: inline-block; margin-block: 6px; }
+.emoji-choices { display: grid; grid-template-columns: repeat(4, 44px); gap: 4px; padding: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+.emoji-choices[hidden] { display: none; }
+.emoji-choices button { min-width: 44px; min-height: 44px; font-size: 22px; border-radius: 6px; background: var(--surface-hover); }
+.chat-composer-bar { flex-wrap: wrap; }
+.chat-composer-bar .emoji-picker { flex: 0 0 auto; }
 :root {
     --primary: #5525a7;
     --accent: #5525a7;

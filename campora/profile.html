@@ -4,20 +4,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Profile | Campora</title>
+    <title>Student profile | Campora</title>
     <script>
         if (location.protocol === "file:") location.replace("signin.html");
     </script>
     <link rel="stylesheet" href="campora.css">
+    <link rel="stylesheet" href="campus-design.css">
     <link rel="icon" href="favicon.png" type="image/png" sizes="32x32">
 </head>
 <body class="profile-page-body">
 
     <main class="profile-page-container">
-        <button type="button" class="back-to-feed-btn"
-            onclick="window.location.href='index.html'">
-            ← Back to Feed
-        </button>
+        <a class="back-to-feed-btn auth-secondary" href="/">Back to feed</a>
 
         <div class="profile-cover"></div>
 
@@ -29,24 +27,31 @@
             </div>
 
             <div class="social-profile-details">
-                <h1 id="socialProfileName">Your Name</h1>
-                <p id="socialProfileUsername">@campora_student</p>
-                <p id="socialProfileBio">Welcome to my Campora profile!</p>
+                <h1 id="socialProfileName">Loading profile…</h1>
+                <p id="socialProfileUsername"></p>
+                <p id="socialProfileBio"></p>
                 <p class="social-profile-campus">
                     <span id="socialProfileCampus">Anchor University, Lagos</span>
                 </p>
                 <p class="social-profile-department">
-                    <span id="socialProfileDepartment">Your Department</span>
+                    <span id="socialProfileDepartment"></span>
                 </p>
             </div>
 
             <button type="button" id="editSocialProfileBtn"
-                class="edit-social-profile-btn">
+                class="edit-social-profile-btn" hidden>
                 Edit Profile
             </button>
         </section>
 
-        <p><a class="auth-secondary" href="/#profile">View your campus posts</a></p>
+        <button type="button" id="followProfileBtn" class="primary-button" hidden>Follow</button>
+        <a id="messageProfileLink" class="auth-secondary" hidden>Message</a>
+        <p id="profileCounts" class="campus-listing" aria-live="polite"></p>
+        <p id="campus-status" role="alert" hidden></p>
+        <section aria-labelledby="profile-posts-title">
+            <h2 id="profile-posts-title">Posts</h2>
+            <div id="publicProfilePosts"></div>
+        </section>
     </main>
 
     <script src="/session.js"></script>

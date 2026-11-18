@@ -37,6 +37,10 @@ export async function createCommunity(db, approvedStudent) {
             PRIMARY KEY (first_id, second_id)
         );
         CREATE INDEX IF NOT EXISTS friendships_second ON friendships(second_id, first_id);
+        CREATE TABLE IF NOT EXISTS follows (owner TEXT NOT NULL, target TEXT NOT NULL, PRIMARY KEY(owner, target));
+        CREATE INDEX IF NOT EXISTS follows_target ON follows(target, owner);
+        CREATE TABLE IF NOT EXISTS reposts (owner TEXT NOT NULL, post TEXT NOT NULL, created BIGINT NOT NULL, PRIMARY KEY(owner, post));
+        CREATE TABLE IF NOT EXISTS story_reposts (owner TEXT NOT NULL, story TEXT NOT NULL, created BIGINT NOT NULL, PRIMARY KEY(owner, story));
         CREATE INDEX IF NOT EXISTS posts_created ON posts(created);
         CREATE INDEX IF NOT EXISTS stories_created ON stories(created);
         CREATE INDEX IF NOT EXISTS comments_post ON comments(post);
@@ -80,6 +84,12 @@ export async function createCommunity(db, approvedStudent) {
         const student = await db.prepare('SELECT email FROM accounts WHERE id = ? AND id NOT IN (SELECT id FROM disabled_accounts)').get(id);
         return student && approvedStudent(student.email);
     };
+    async function messageAccess(owner, peer) {
+        const sent = Boolean(await db.prepare('SELECT 1 FROM follows WHERE owner = ? AND target = ?').get(owner, peer));
+        const received = Boolean(await db.prepare('SELECT 1 FROM follows WHERE owner = ? AND target = ?').get(peer, owner));
+        const count = (await db.prepare('SELECT CAST(count(*) AS INTEGER) AS total FROM messages WHERE sender = ? AND recipient = ?').get(owner, peer)).total;
+        return { followed: sent, followsYou: received, messagesRemaining: Math.max(0, 5 - count), canMessage: sent && (received || count < 5) };
+    }
 
     async function upload(input, imageOnly = false) {
         if (!input || !mediaTypes.has(input.type) || (imageOnly && !input.type.startsWith('image/')) ||
@@ -113,7 +123,8 @@ export async function createCommunity(db, approvedStudent) {
             author: row.anonymous ? 'Anonymous Student' : author || 'Anchor student',
             created: Number(row.created), file: media_type ? { type: media_type, url: mediaUrl(row.media) } : null,
             poll: options ? { options, votes: [first_votes, second_votes], choice } : null,
-            likes, comments, liked: Boolean(liked), saved: Boolean(saved)
+            likes, comments, liked: Boolean(liked), saved: Boolean(saved),
+            reposted: Boolean(await db.prepare('SELECT 1 FROM reposts WHERE owner = ? AND post = ?').get(owner, row.id))
         };
     }
 
@@ -123,7 +134,24 @@ export async function createCommunity(db, approvedStudent) {
         const owner = member.id;
         const now = Date.now();
         if (method === 'GET') {
-            if (path === '/api/profile') return { data: await viewProfile(owner) };
+            if (path === '/api/profile') {
+                const target = params.get('id') || owner;
+                if (!await currentStudent(target) || await blocked(owner, target)) return missing;
+                const record = await viewProfile(target);
+                const stats = await db.prepare(`SELECT
+                    (SELECT CAST(count(*) AS INTEGER) FROM follows WHERE target = ?) AS followers,
+                    (SELECT CAST(count(*) AS INTEGER) FROM follows WHERE owner = ?) AS following,
+                    EXISTS (SELECT 1 FROM follows WHERE owner = ? AND target = ?) AS followed`).get(target, target, owner, target);
+                return { data: { ...record, ...stats, ...await messageAccess(owner, target), id: target, own: target === owner } };
+            }
+            if (path === '/api/profile-posts') {
+                const target = params.get('id');
+                if (!await currentStudent(target) || await blocked(owner, target)) return missing;
+                const rows = await db.prepare(`SELECT * FROM posts WHERE owner = ? AND anonymous = 0
+                    AND id NOT IN (SELECT id FROM hidden_posts) AND ${visibleAuthor('posts.owner')}
+                    ORDER BY created DESC, id DESC LIMIT 100`).all(target, owner, owner);
+                return { data: await postViews(rows, owner) };
+            }
             if (path === '/api/post') {
                 const post = await postById(params.get('id'), owner);
                 const view = post && await postView(post, owner);
@@ -137,7 +165,18 @@ export async function createCommunity(db, approvedStudent) {
                 const rows = params.get('media') === 'video'
                     ? await db.prepare(`SELECT posts.* FROM posts JOIN media ON media.id = posts.media WHERE media.type LIKE 'video/%' AND posts.id NOT IN (SELECT id FROM hidden_posts) AND ${visibleAuthor('posts.owner')} ORDER BY posts.created DESC LIMIT 100`).all(owner, owner)
                     : await db.prepare(`SELECT * FROM posts WHERE id NOT IN (SELECT id FROM hidden_posts) AND ${visibleAuthor('posts.owner')} ORDER BY created DESC, id DESC LIMIT 100`).all(owner, owner);
-                return { data: await postViews(rows, owner) };
+                const shares = await db.prepare(`SELECT posts.*, reposts.created AS shared_at, profiles.name AS shared_by
+                    FROM reposts JOIN posts ON posts.id = reposts.post LEFT JOIN profiles ON profiles.id = reposts.owner
+                    WHERE posts.id NOT IN (SELECT id FROM hidden_posts)
+                    AND ${visibleAuthor('posts.owner')} AND ${visibleAuthor('reposts.owner')}
+                    ${params.get('media') === 'video' ? "AND EXISTS (SELECT 1 FROM media WHERE media.id = posts.media AND media.type LIKE 'video/%')" : ''}
+                    ORDER BY reposts.created DESC LIMIT 100`).all(owner, owner, owner, owner);
+                const reposted = await Promise.all(shares.map(async row => {
+                    const view = await postView(row, owner);
+                    return view && { ...view, repostedBy: row.shared_by || 'Anchor student', sharedAt: Number(row.shared_at) };
+                }));
+                return { data: [...await postViews(rows, owner), ...reposted.filter(Boolean)]
+                    .sort((a, b) => (b.sharedAt || b.created) - (a.sharedAt || a.created)).slice(0, 100) };
             }
             if (path === '/api/saved') {
                 const rows = await db.prepare(`SELECT posts.* FROM reactions JOIN posts ON posts.id = reactions.post WHERE reactions.owner = ? AND reactions.kind = 'save' AND posts.id NOT IN (SELECT id FROM hidden_posts) AND ${visibleAuthor('posts.owner')} ORDER BY posts.created DESC LIMIT 100`).all(owner, owner, owner);
@@ -147,8 +186,15 @@ export async function createCommunity(db, approvedStudent) {
                 const rows = await db.prepare(`SELECT stories.*, media.type, story_captions.caption FROM stories
                     JOIN media ON media.id = stories.media LEFT JOIN story_captions ON story_captions.id = stories.id
                     WHERE created > ? AND ${visibleAuthor('stories.owner')} ORDER BY created DESC LIMIT 100`).all(now - 86_400_000, owner, owner);
-                return { data: await Promise.all(rows.map(async row => ({ id: row.id, type: row.type, url: mediaUrl(row.media), own: row.owner === owner,
-                    caption: row.caption || '', author: (await profile(row.owner)).name || 'Anchor student' }))) };
+                const stories = await Promise.all(rows.map(async row => ({ id: row.id, type: row.type, url: mediaUrl(row.media), own: row.owner === owner,
+                    caption: row.caption || '', author: (await profile(row.owner)).name || 'Anchor student' })));
+                const shares = await db.prepare(`SELECT story_reposts.story, profiles.name, story_reposts.owner
+                    FROM story_reposts LEFT JOIN profiles ON profiles.id = story_reposts.owner
+                    WHERE ${visibleAuthor('story_reposts.owner')} ORDER BY story_reposts.created DESC LIMIT 100`).all(owner, owner);
+                return { data: [...stories, ...shares.flatMap(share => {
+                    const original = stories.find(story => story.id === share.story);
+                    return original ? [{ ...original, own: false, repostedBy: share.name || 'Anchor student', repostOwn: share.owner === owner }] : [];
+                })] };
             }
             if (path === '/api/memberships') return { data: (await db.prepare('SELECT group_name FROM memberships WHERE owner = ?').all(owner)).map(row => row.group_name) };
             if (path === '/api/students') {
@@ -156,18 +202,16 @@ export async function createCommunity(db, approvedStudent) {
                 const contacts = params.get('contacts') === '1';
                 if (!contacts && (nameQuery.length < 2 || nameQuery.length > 60)) return { data: [] };
                 const filter = contacts
-                    ? 'EXISTS (SELECT 1 FROM friendships f WHERE (f.first_id = ? AND f.second_id = accounts.id) OR (f.second_id = ? AND f.first_id = accounts.id))'
+                    ? `(EXISTS (SELECT 1 FROM follows f WHERE (f.owner = ? AND f.target = accounts.id) OR (f.target = ? AND f.owner = accounts.id))
+                        OR EXISTS (SELECT 1 FROM messages m WHERE (m.sender = ? AND m.recipient = accounts.id) OR (m.recipient = ? AND m.sender = accounts.id)))`
                     : "LOWER(profiles.name) LIKE ? ESCAPE '!'";
                 const search = '%' + nameQuery.toLowerCase().replace(/[!%_]/g, '!$&') + '%';
                 const rows = await db.prepare(`SELECT accounts.id, accounts.email, profiles.name, profiles.department, profiles.username
                     FROM accounts LEFT JOIN profiles USING (id) WHERE accounts.id != ? AND ${noBlock('accounts.id')}
                     AND accounts.id NOT IN (SELECT id FROM disabled_accounts) AND ${filter}
-                    ORDER BY profiles.name, accounts.id LIMIT 50`).all(owner, owner, owner, ...(contacts ? [owner, owner] : [search]));
-                const relations = await db.prepare('SELECT * FROM friendships WHERE first_id = ? OR second_id = ?').all(owner, owner);
-                const states = new Map(relations.map(row => [row.first_id === owner ? row.second_id : row.first_id,
-                    row.accepted ? 'friends' : row.requester === owner ? 'sent' : 'received']));
-                return { data: rows.filter(row => approvedStudent(row.email)).map(({ id, name, department, username }) =>
-                    ({ id, name: name || 'Anchor student', department, username, friendship: states.get(id) || 'none' })) };
+                    ORDER BY profiles.name, accounts.id LIMIT 50`).all(owner, owner, owner, ...(contacts ? [owner, owner, owner, owner] : [search]));
+                return { data: await Promise.all(rows.filter(row => approvedStudent(row.email)).map(async ({ id, name, department, username }) =>
+                    ({ id, name: name || 'Anchor student', department, username, ...await messageAccess(owner, id) }))) };
             }
             if (path === '/api/people-preferences') {
                 return { data: await db.prepare(`SELECT pp.target AS id, pp.kind, profiles.name, profiles.username
@@ -176,7 +220,11 @@ export async function createCommunity(db, approvedStudent) {
             }
             if (path === '/api/messages') {
                 const peer = params.get('peer');
-                if (peer !== 'campus-live' && (peer === owner || !await currentStudent(peer) || await blocked(owner, peer) || !(await friendship(owner, peer))?.accepted)) return missing;
+                if (peer !== 'campus-live' && (peer === owner || !await currentStudent(peer) || await blocked(owner, peer))) return missing;
+                if (peer !== 'campus-live') {
+                    const access = await messageAccess(owner, peer);
+                    if (!access.followed && !access.followsYou) return missing;
+                }
                 const rows = peer === 'campus-live'
                     ? await db.prepare(`SELECT * FROM messages WHERE recipient = 'campus-live' AND ${noBlock('messages.sender')} ORDER BY id DESC LIMIT 100`).all(owner, owner)
                     : await db.prepare('SELECT * FROM messages WHERE (sender = ? AND recipient = ?) OR (sender = ? AND recipient = ?) ORDER BY id DESC LIMIT 100').all(owner, peer, peer, owner);
@@ -186,9 +234,9 @@ export async function createCommunity(db, approvedStudent) {
                 const readAt = Number((await db.prepare('SELECT read_at FROM preferences WHERE owner = ?').get(owner))?.read_at ?? 0);
                 const rows = await db.prepare(`SELECT id, sender, body, created FROM messages WHERE recipient = ?
                     AND ${noBlock('messages.sender')}
-                    AND EXISTS (SELECT 1 FROM friendships f WHERE f.accepted = 1 AND
-                        ((f.first_id = messages.sender AND f.second_id = messages.recipient) OR
-                         (f.second_id = messages.sender AND f.first_id = messages.recipient)))
+                    AND EXISTS (SELECT 1 FROM follows f WHERE
+                        ((f.owner = messages.sender AND f.target = messages.recipient) OR
+                         (f.target = messages.sender AND f.owner = messages.recipient)))
                     ORDER BY id DESC LIMIT 30`).all(owner, owner, owner);
                 return { data: { read: readAt > 0, messages: await Promise.all(rows.map(async row => ({ id: row.id, author: (await profile(row.sender)).name || 'Anchor student', text: row.body, unread: row.created > readAt }))) } };
             }
@@ -203,7 +251,7 @@ export async function createCommunity(db, approvedStudent) {
             }
         }
 
-        const parts = /^\/api\/posts\/([a-f0-9-]{36})\/(like|save|vote|comments|report|delete|edit)$/.exec(path);
+        const parts = /^\/api\/posts\/([a-f0-9-]{36})\/(like|save|vote|comments|report|delete|edit|repost)$/.exec(path);
         if (parts) {
             const [, id, action] = parts;
             if (method === 'GET' && action === 'comments') {
@@ -222,6 +270,7 @@ export async function createCommunity(db, approvedStudent) {
                     await db.prepare('DELETE FROM reactions WHERE post = ?').run(id);
                     await db.prepare('DELETE FROM reports WHERE post = ?').run(id);
                     await db.prepare('DELETE FROM hidden_posts WHERE id = ?').run(id);
+                    await db.prepare('DELETE FROM reposts WHERE post = ?').run(id);
                     if (post.media) await db.prepare('DELETE FROM media WHERE id = ?').run(post.media);
                     if (member.moderator) await db.prepare('INSERT INTO moderation_log(moderator, target, action, created) VALUES (?, ?, ?, ?)').run(owner, id, 'delete', now);
                     return { data: { ok: true } };
@@ -230,7 +279,11 @@ export async function createCommunity(db, approvedStudent) {
             return db.transaction(async () => {
                 const post = await postById(id, owner, true);
                 if (!post) return missing;
-                if (action === 'edit') {
+                if (action === 'repost') {
+                    if (typeof input?.enabled !== 'boolean') return invalid;
+                    if (input.enabled) await db.prepare('INSERT INTO reposts VALUES (?, ?, ?) ON CONFLICT DO NOTHING').run(owner, id, now);
+                    else await db.prepare('DELETE FROM reposts WHERE owner = ? AND post = ?').run(owner, id);
+                } else if (action === 'edit') {
                     if (post.owner !== owner) return { status: 403, error: 'Only the author can edit this post.' };
                     if (typeof input?.text !== 'string' || input.text.trim().length > 3000 || (!input.text.trim() && !post.media)) return invalid;
                     await db.prepare('UPDATE posts SET body = ? WHERE id = ?').run(input.text.trim(), id);
@@ -256,18 +309,28 @@ export async function createCommunity(db, approvedStudent) {
         }
 
         if (method !== 'POST') return missing;
-        if (path === '/api/people-preferences' || path === '/api/friendships') {
+        if (path === '/api/people-preferences' || path === '/api/friendships' || path === '/api/follow') {
             const peer = typeof input?.peer === 'string' ? input.peer : '';
             if (peer === owner || !peer) return missing;
             const pair = [owner, peer].sort();
             return withPair(owner, peer, async () => {
+                if (path === '/api/follow') {
+                    if (typeof input.enabled !== 'boolean') return invalid;
+                    if (!await currentStudent(peer) || await blocked(owner, peer)) return missing;
+                    if (input.enabled) await db.prepare('INSERT INTO follows VALUES (?, ?) ON CONFLICT DO NOTHING').run(owner, peer);
+                    else await db.prepare('DELETE FROM follows WHERE owner = ? AND target = ?').run(owner, peer);
+                    return { data: { followed: input.enabled } };
+                }
                 if (path === '/api/people-preferences') {
                     const { kind, enabled } = input;
                     if (!['mute', 'block'].includes(kind) || typeof enabled !== 'boolean') return invalid;
                     if (enabled) {
                         if (!await currentStudent(peer)) return missing;
                         await db.prepare('INSERT INTO people_preferences VALUES (?, ?, ?) ON CONFLICT DO NOTHING').run(owner, peer, kind);
-                        if (kind === 'block') await db.prepare('DELETE FROM friendships WHERE first_id = ? AND second_id = ?').run(...pair);
+                        if (kind === 'block') {
+                            await db.prepare('DELETE FROM friendships WHERE first_id = ? AND second_id = ?').run(...pair);
+                            await db.prepare('DELETE FROM follows WHERE (owner = ? AND target = ?) OR (owner = ? AND target = ?)').run(owner, peer, peer, owner);
+                        }
                     } else {
                         await db.prepare('DELETE FROM people_preferences WHERE owner = ? AND target = ? AND kind = ?').run(owner, peer, kind);
                     }
@@ -316,6 +379,17 @@ export async function createCommunity(db, approvedStudent) {
             return { data: await postView(await postById(id, owner), owner) };
         }
         if (path === '/api/stories') {
+            if (input?.action === 'repost') {
+                if (typeof input.id !== 'string' || typeof input.enabled !== 'boolean') return invalid;
+                return db.transaction(async () => {
+                    const original = await db.prepare(`SELECT id FROM stories WHERE id = ? AND created > ? AND ${visibleAuthor('stories.owner')}
+                        ${db.postgres ? 'FOR UPDATE' : ''}`).get(input.id, now - 86_400_000, owner, owner);
+                    if (!original) return missing;
+                    if (input.enabled) await db.prepare('INSERT INTO story_reposts VALUES (?, ?, ?) ON CONFLICT DO NOTHING').run(owner, input.id, now);
+                    else await db.prepare('DELETE FROM story_reposts WHERE owner = ? AND story = ?').run(owner, input.id);
+                    return { data: { ok: true } };
+                });
+            }
             if (input?.action === 'edit' || input?.action === 'delete') {
                 if (typeof input.id !== 'string' || (input.action === 'edit' && (typeof input.caption !== 'string' || input.caption.trim().length > 250))) return invalid;
                 return db.transaction(async () => {
@@ -324,6 +398,7 @@ export async function createCommunity(db, approvedStudent) {
                     if (input.action === 'delete') {
                         await db.prepare('DELETE FROM stories WHERE id = ?').run(input.id);
                         await db.prepare('DELETE FROM story_captions WHERE id = ?').run(input.id);
+                        await db.prepare('DELETE FROM story_reposts WHERE story = ?').run(input.id);
                         await db.prepare('DELETE FROM media WHERE id = ?').run(story.media);
                     } else {
                         await db.prepare('INSERT INTO story_captions VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET caption=excluded.caption').run(input.id, input.caption.trim());
@@ -352,8 +427,9 @@ export async function createCommunity(db, approvedStudent) {
             const body = text(input?.text, 2000);
             if (!body || peer === owner || (peer !== 'campus-live' && !await currentStudent(peer))) return invalid;
             const sendMessage = async () => {
-                if (peer !== 'campus-live' && (!await currentStudent(peer) || await blocked(owner, peer) || !(await friendship(owner, peer))?.accepted)) {
-                    return { status: 403, error: 'You can only message someone after they accept your friend request.' };
+                if (peer !== 'campus-live' && (!await currentStudent(peer) || await blocked(owner, peer))) return missing;
+                if (peer !== 'campus-live' && !(await messageAccess(owner, peer)).canMessage) {
+                    return { status: 403, error: 'Follow this person to send a request. After five messages, wait for them to follow you back.' };
                 }
                 await db.prepare('INSERT INTO messages(sender, recipient, body, created) VALUES (?, ?, ?, ?)').run(owner, peer, body, now);
                 return { data: { ok: true } };

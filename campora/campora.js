@@ -76,6 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const form = overlay.querySelector(".composer-form");
         const textarea = overlay.querySelector(".composer-textarea");
+        addEmojiPicker(textarea);
         const fileInput = overlay.querySelector(".composer-file");
         const preview = overlay.querySelector(".composer-media-preview");
         let selectedFile = null;
@@ -194,8 +195,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const author = document.createElement("div");
         author.className = "post-author";
 
-        const name = document.createElement("strong");
+        const name = document.createElement(record.authorId ? "a" : "strong");
         name.textContent = record.own && !anonymous ? "You" : authorName;
+        if (record.authorId) {
+            name.href = "/profile.html?id=" + encodeURIComponent(record.authorId);
+            name.className = "post-profile-link";
+        }
 
         const time = document.createElement("p");
         time.textContent = new Date(record.created).toLocaleString();
@@ -215,6 +220,12 @@ document.addEventListener("DOMContentLoaded", () => {
         content.textContent = text;
 
         post.append(header);
+        if (record.repostedBy) {
+            const credit = document.createElement("p");
+            credit.className = "repost-credit";
+            credit.textContent = record.repostedBy + " reposted";
+            header.before(credit);
+        }
 
         if (anonymous) {
             const tag = document.createElement("span");
@@ -445,6 +456,10 @@ function connectPostActions(post, record) {
         });
 
         menu.appendChild(reportButton);
+        menu.append(campusButton(record.reposted ? "Undo repost" : "Repost", async () => {
+            await campusApi("posts/" + record.id + "/repost", { enabled: !record.reposted });
+            await window.refreshCampusFeed();
+        }));
         if (record.own) menu.append(campusButton("Edit caption", () => {
             menu.remove();
             editCaption(post.querySelector(".post-header"), record.text, 3000, async value => {
@@ -500,6 +515,7 @@ function connectPostActions(post, record) {
             editor.remove();
         }), campusButton("Cancel", () => editor.remove()));
         anchor.after(editor);
+        addEmojiPicker(input);
         input.focus();
     }
 
@@ -536,7 +552,7 @@ function connectPostActions(post, record) {
 
         const label = document.createElement("span");
         label.className = "story-name";
-        label.textContent = story.author;
+        label.textContent = story.repostedBy ? story.repostedBy + " reposted " + story.author : story.author;
 
         card.append(ring, label);
 
@@ -582,6 +598,12 @@ function connectPostActions(post, record) {
         caption.textContent = story.caption;
         caption.hidden = !story.caption;
         viewer.append(topBar, media, caption);
+        const repost = campusButton(story.repostOwn ? "Undo story repost" : "Repost story", async () => {
+            await campusApi("stories", { action: "repost", id: story.id, enabled: !story.repostOwn });
+            viewer.close();
+            await refreshStories();
+        });
+        if (!story.own) viewer.append(repost);
         if (story.own) {
             const controls = document.createElement("div");
             controls.className = "story-controls";
@@ -659,6 +681,7 @@ function connectPostActions(post, record) {
             await refreshStories();
         }), campusButton("Cancel", () => dialog.close()));
         dialog.append(title, preview, caption, actions);
+        addEmojiPicker(caption);
         dialog.addEventListener("close", () => {
             URL.revokeObjectURL(source);
             dialog.remove();
@@ -887,6 +910,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const liveChatForm = document.getElementById("liveChatForm");
     const liveChatMessages = document.getElementById("liveChatMessages");
     let peer = null;
+    const requestedPeer = new URLSearchParams(location.search).get("message");
+    if (requestedPeer) peer = requestedPeer;
     let chatState = "";
     let directoryVersion = 0;
     let directorySignature = "";
@@ -894,27 +919,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const studentSearch = document.querySelector(".messages-search-bar input");
 
     function showRelationship(student) {
-        const state = student?.friendship || "";
-        const signature = (student?.id || "") + ":" + state;
+        const signature = JSON.stringify(student && [student.id, student.followed, student.followsYou, student.messagesRemaining]);
         if (chatState === signature) return;
         chatState = signature;
         chatRelationship.replaceChildren();
         chatMessagesArea.replaceChildren();
-        chatSendForm.hidden = state !== "friends";
+        chatSendForm.hidden = !student?.canMessage;
         document.getElementById("activeChatName").textContent = student?.name || "Choose a student";
         document.getElementById("activeChatAvatar").textContent = student?.name[0] || "A";
         if (!student) return;
         const message = document.createElement("p");
-        message.textContent = { none: "Send a friend request to start chatting.", sent: "Friend request sent.", received: "This student sent you a friend request.", friends: "Connected" }[state];
+        message.textContent = student.followed && student.followsYou ? "You follow each other. Messaging is unlocked."
+            : student.followed ? student.messagesRemaining + " message requests remaining until they follow you back."
+            : student.followsYou ? "Follow back to reply and unlock the conversation."
+            : "Follow this person to send up to five message requests.";
         chatRelationship.append(message);
-        const actions = { none: [["request", "Send friend request"]], sent: [["cancel", "Cancel request"]],
-            received: [["accept", "Accept request"], ["decline", "Decline"]], friends: [] }[state];
-        for (const [action, label] of actions) {
-            chatRelationship.append(campusButton(label, async () => {
-                await campusApi("friendships", { peer: student.id, action });
-                await loadStudents();
-            }));
-        }
+        chatRelationship.append(campusButton(student.followed ? "Unfollow" : student.followsYou ? "Follow back" : "Follow", async () => {
+            await campusApi("follow", { peer: student.id, enabled: !student.followed });
+            await loadStudents();
+        }));
         chatRelationship.append(campusButton("Block", async () => {
             if (!window.confirm("Block " + student.name + " and remove your connection?")) return;
             await campusApi("people-preferences", { peer: student.id, kind: "block", enabled: true });
@@ -946,6 +969,15 @@ document.addEventListener("DOMContentLoaded", () => {
         ]);
         if (version !== directoryVersion) return;
         const students = [...new Map([...contacts, ...matches].map(student => [student.id, student])).values()];
+        if (requestedPeer && peer === requestedPeer && !students.some(student => student.id === peer)) {
+            try {
+                const profile = await campusApi("profile?id=" + encodeURIComponent(peer));
+                if (version !== directoryVersion) return;
+                students.push(profile);
+            } catch {
+                if (version === directoryVersion) peer = null;
+            }
+        }
         const selected = students.find(student => student.id === peer);
         showRelationship(selected);
         const signature = JSON.stringify([peer, students, query]);
@@ -957,19 +989,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 button.type = "button";
                 button.className = "chat-thread-item";
                 button.textContent = student.name + (student.department ? " · " + student.department : "");
-                if (student.friendship === "received") button.textContent += " · Friend request";
+                if (student.followsYou && !student.followed) button.textContent += " · Message request";
                 button.classList.toggle("active", peer === student.id);
                 button.addEventListener("click", () => {
                     peer = student.id;
                     list.querySelector(".active")?.classList.remove("active");
                     button.classList.add("active");
                     showRelationship(student);
-                    if (student.friendship === "friends") showMessages(peer, chatMessagesArea).catch(campusError);
+                    if (student.followed || student.followsYou) showMessages(peer, chatMessagesArea).catch(campusError);
                 });
                 return button;
             }));
         if (!students.length) list.textContent = query.length >= 2 ? "No matching students." : "Search by display name to find someone.";
-        if (selected?.friendship === "friends") await showMessages(selected.id, chatMessagesArea);
+        if (selected && (selected.followed || selected.followsYou)) await showMessages(selected.id, chatMessagesArea);
     }
     let studentSearchTimer;
     studentSearch.addEventListener("input", () => {
@@ -1001,10 +1033,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (live || to === peer) form.reset();
                 await showMessages(to, container, live);
                 container.scrollTop = container.scrollHeight;
+                if (!live) await loadStudents();
             });
         });
     }
     chatSendForm.hidden = true;
+    addEmojiPicker(document.getElementById("chatMessageInput"));
+    addEmojiPicker(document.getElementById("liveChatInput"));
     connectChat(chatSendForm, document.getElementById("chatMessageInput"), () => peer, chatMessagesArea, false);
     connectChat(liveChatForm, document.getElementById("liveChatInput"), () => "campus-live", liveChatMessages, true);
 
@@ -1212,6 +1247,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Initial view sync
-    if (window.location.hash === "#profile") switchTab("profile");
+    if (requestedPeer) switchTab("messages");
+    else if (window.location.hash === "#profile") switchTab("profile");
     else refreshProfileView().catch(campusError);
 });

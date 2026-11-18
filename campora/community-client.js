@@ -91,3 +91,55 @@ window.addEventListener("pageshow", async event => {
         campusError(error);
     }
 });
+function addEmojiPicker(input) {
+    const choices = [
+        ["😀", "Grinning face"], ["😊", "Smiling face"], ["😂", "Laughing"],
+        ["😍", "Heart eyes"], ["😎", "Sunglasses"], ["🤔", "Thinking"],
+        ["😭", "Crying"], ["🥳", "Celebrating"], ["👋", "Wave"],
+        ["👍", "Thumbs up"], ["👏", "Applause"], ["🙏", "Thanks"],
+        ["❤️", "Heart"], ["🔥", "Fire"], ["🎉", "Party"], ["📚", "Books"]
+    ];
+    const wrapper = document.createElement("div");
+    wrapper.className = "emoji-picker";
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "auth-secondary";
+    toggle.textContent = "Emoji";
+    toggle.setAttribute("aria-expanded", "false");
+    const panel = document.createElement("div");
+    panel.className = "emoji-choices";
+    panel.hidden = true;
+    panel.setAttribute("role", "group");
+    panel.setAttribute("aria-label", "Choose an emoji");
+    let start = 0;
+    let end = 0;
+    const remember = () => { start = input.selectionStart; end = input.selectionEnd; };
+    input.addEventListener("select", remember);
+    input.addEventListener("blur", remember);
+    toggle.addEventListener("click", () => {
+        panel.hidden = !panel.hidden;
+        toggle.setAttribute("aria-expanded", String(!panel.hidden));
+    });
+    for (const [symbol, name] of choices) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = symbol;
+        button.setAttribute("aria-label", name);
+        button.addEventListener("click", () => {
+            if (!input.disabled && (!input.maxLength || input.maxLength < 0 || input.value.length - (end - start) + symbol.length <= input.maxLength)) {
+                input.focus();
+                input.setRangeText(symbol, start, end, "end");
+                input.dispatchEvent(new Event("input", { bubbles: true }));
+                remember();
+            }
+            panel.hidden = true;
+            toggle.setAttribute("aria-expanded", "false");
+        });
+        panel.append(button);
+    }
+    wrapper.addEventListener("keydown", event => {
+        if (event.key === "Escape") { panel.hidden = true; toggle.setAttribute("aria-expanded", "false"); toggle.focus(); }
+    });
+    wrapper.append(toggle, panel);
+    input.after(wrapper);
+}
