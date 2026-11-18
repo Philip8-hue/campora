@@ -7,6 +7,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openDatabase } from './database.mjs';
 import { createCommunity } from './community.mjs';
+import { createPush } from './push.mjs';
 
 const minute = 60_000;
 const sessionLifetime = 7 * 24 * 60 * minute;
@@ -26,7 +27,10 @@ const assets = new Map([
     ['/auth.js', ['text/javascript; charset=utf-8', asset('auth.js')]],
     ['/setup.js', ['text/javascript; charset=utf-8', asset('setup.js')]],
     ['/campora.js', ['text/javascript; charset=utf-8', asset('campora.js')]],
-    ['/profile.js', ['text/javascript; charset=utf-8', asset('profile.js')]]
+    ['/profile.js', ['text/javascript; charset=utf-8', asset('profile.js')]],
+    ['/phone-notifications.js', ['text/javascript; charset=utf-8', asset('phone-notifications.js')]],
+    ['/sw.js', ['text/javascript; charset=utf-8', asset('sw.js')]],
+    ['/manifest.webmanifest', ['application/manifest+json', asset('manifest.webmanifest')]]
 ]);
 const pages = new Map([
     ['/', asset('index.html')],
@@ -95,6 +99,7 @@ export async function createCamporaServer({ databasePath, databaseUrl, origin, a
     `);
     const operations = await createCampusOperations(db, getIceServers ? [] : iceServers, approvedStudent);
     const community = await createCommunity(db, approvedStudent);
+    const push = await createPush(db, origin);
     const profileReady = db.prepare('SELECT 1 FROM profiles WHERE id = ? AND username IS NOT NULL');
     const challenge = db.prepare('SELECT * FROM challenges WHERE email = ?');
     const removeChallenge = db.prepare('DELETE FROM challenges WHERE email = ? AND proof = ?');
@@ -163,7 +168,8 @@ export async function createCamporaServer({ databasePath, databaseUrl, origin, a
                 try { input = JSON.parse(Buffer.concat(chunks)); }
                 catch { return json(res, 400, { error: 'Invalid request.' }); }
             }
-            const result = (await operations(req.method, path, url.searchParams, member, input)) ??
+            const result = (await push.api(req.method, path, member, tokenHash, input)) ??
+                (await operations(req.method, path, url.searchParams, member, input)) ??
                 (await community(req.method, path, url.searchParams, member, input));
             if (result.media) {
                 res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
@@ -393,6 +399,7 @@ export async function createCamporaServer({ databasePath, databaseUrl, origin, a
         });
     });
     server.on('close', () => db.close().catch(error => console.error('Campora database close failed', error.code || error.name)));
+    server.on('close', push.stop);
     return server;
 }
 

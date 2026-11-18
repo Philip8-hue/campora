@@ -1087,7 +1087,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const row = document.createElement("a");
             row.className = "notification-item" + (notification.unread ? " unread" : "");
             row.href = notification.href;
-            const actions = { follow: " followed you", repost: " reposted your post", "message-request": " sent you a message request", message: " sent you a message" };
+            const actions = { follow: " followed you", repost: " reposted your post", like: " liked your post", comment: " commented on your post", "message-request": " sent you a message request", message: " sent you a message" };
             row.textContent = notification.author + actions[notification.kind];
             const time = document.createElement("time");
             time.dateTime = new Date(notification.created).toISOString();
@@ -1274,7 +1274,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Initial view sync
-    if (requestedPeer) switchTab("messages");
+    if (new URLSearchParams(location.search).has("notifications")) switchTab("notifications");
+    else if (requestedPeer) switchTab("messages");
     else if (window.location.hash === "#profile") switchTab("profile");
     else refreshProfileView().catch(campusError);
 });

@@ -31,6 +31,7 @@ export async function createCommunity(db, approvedStudent) {
             kind TEXT NOT NULL, target TEXT NOT NULL, created BIGINT NOT NULL
         );
         CREATE INDEX IF NOT EXISTS activity_recipient ON activity_notifications(recipient, created);
+        CREATE TABLE IF NOT EXISTS pending_push (id TEXT PRIMARY KEY);
         CREATE TABLE IF NOT EXISTS reports (post TEXT, owner TEXT, created BIGINT, PRIMARY KEY(post, owner));
         CREATE TABLE IF NOT EXISTS people_preferences (
             owner TEXT NOT NULL, target TEXT NOT NULL, kind TEXT NOT NULL CHECK (kind IN ('mute', 'block')),
@@ -97,7 +98,9 @@ export async function createCommunity(db, approvedStudent) {
     }
     async function notify(recipient, actor, kind, target, created) {
         if (recipient === actor) return;
-        await db.prepare('INSERT INTO activity_notifications VALUES (?, ?, ?, ?, ?, ?)').run(randomUUID(), recipient, actor, kind, target, created);
+        const id = randomUUID();
+        await db.prepare('INSERT INTO activity_notifications VALUES (?, ?, ?, ?, ?, ?)').run(id, recipient, actor, kind, target, created);
+        await db.prepare('INSERT INTO pending_push VALUES (?)').run(id);
     }
 
     async function upload(input, imageOnly = false) {
@@ -251,12 +254,12 @@ export async function createCommunity(db, approvedStudent) {
                     LEFT JOIN profiles ON profiles.id = n.actor WHERE n.recipient = ?
                     AND ${noBlock('n.actor')}
                     AND n.actor NOT IN (SELECT id FROM disabled_accounts)
-                    AND (n.kind != 'repost' OR EXISTS (SELECT 1 FROM posts WHERE posts.id = n.target AND posts.id NOT IN (SELECT id FROM hidden_posts)))
+                    AND (n.kind NOT IN ('repost', 'like', 'comment') OR EXISTS (SELECT 1 FROM posts WHERE posts.id = n.target AND posts.id NOT IN (SELECT id FROM hidden_posts)))
                     ORDER BY n.created DESC, n.id DESC LIMIT 100`).all(owner, owner, owner);
                 const items = activity.map(row => ({
                     id: row.id, kind: row.kind, author: row.name || 'Anchor student',
                     href: row.kind === 'follow' ? '/profile.html?id=' + encodeURIComponent(row.actor)
-                        : row.kind === 'repost' ? '/?post=' + encodeURIComponent(row.target)
+                        : ['repost', 'like', 'comment'].includes(row.kind) ? '/?post=' + encodeURIComponent(row.target)
                         : '/?message=' + encodeURIComponent(row.actor),
                     created: Number(row.created), unread: Number(row.created) > readAt
                 }));
@@ -318,6 +321,7 @@ export async function createCommunity(db, approvedStudent) {
                     const body = text(input?.text, 1000);
                     if (!body) return invalid;
                     await db.prepare('INSERT INTO comments(post, owner, body, created) VALUES (?, ?, ?, ?)').run(id, owner, body, now);
+                    await notify(post.owner, owner, 'comment', id, now);
                 } else if (action === 'report') {
                     await db.prepare('INSERT INTO reports VALUES (?, ?, ?) ON CONFLICT DO NOTHING').run(id, owner, now);
                 } else if (action === 'vote') {
@@ -327,7 +331,10 @@ export async function createCommunity(db, approvedStudent) {
                     await db.prepare("INSERT INTO reactions VALUES (?, ?, 'vote', ?) ON CONFLICT DO NOTHING").run(id, owner, choice);
                 } else {
                     if (typeof input?.enabled !== 'boolean') return invalid;
-                    if (input.enabled) await db.prepare('INSERT INTO reactions VALUES (?, ?, ?, 1) ON CONFLICT DO NOTHING').run(id, owner, action);
+                    if (input.enabled) {
+                        const inserted = await db.prepare('INSERT INTO reactions VALUES (?, ?, ?, 1) ON CONFLICT DO NOTHING').run(id, owner, action);
+                        if (action === 'like' && inserted.changes) await notify(post.owner, owner, 'like', id, now);
+                    }
                     else await db.prepare('DELETE FROM reactions WHERE post = ? AND owner = ? AND kind = ?').run(id, owner, action);
                 }
                 return { data: await postView(post, owner) };

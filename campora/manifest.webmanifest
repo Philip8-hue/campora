@@ -1,0 +1,9 @@
+{
+    "id": "/",
+    "name": "Campora",
+    "short_name": "Campora",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#15101e",
+    "theme_color": "#5525a7"
+}
