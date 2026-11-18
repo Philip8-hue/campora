@@ -263,7 +263,7 @@ export async function createCamporaServer({ databasePath, databaseUrl, origin, a
         }
 
         const password = input?.password;
-        const validPassword = typeof password === 'string' && password.length <= 128 && password.length >= 15;
+        const validPassword = typeof password === 'string' && password.length <= 128 && password.length >= 8;
         async function createSession() {
             const newToken = randomBytes(32).toString('hex');
             if (tokenHash) await db.prepare('DELETE FROM sessions WHERE token = ?').run(tokenHash);
@@ -337,7 +337,7 @@ export async function createCamporaServer({ databasePath, databaseUrl, origin, a
 
         const pending = directSignup ? null : await challenge.get(email);
         const code = input?.code;
-        if (!validPassword) return json(res, 400, { error: 'Use a password between 15 and 128 characters.' });
+        if (!validPassword) return json(res, 400, { error: 'Use a password between 8 and 128 characters.' });
         if (!directSignup && (!approvedStudent(email) || !pending || pending.mode !== mode || pending.expires <= now ||
             pending.attempts >= 5 || typeof code !== 'string' || !/^\d{8}$/.test(code))) {
             return json(res, 400, { error: 'That code is invalid or expired. Request a new code and try again.' });
