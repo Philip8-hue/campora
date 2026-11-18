@@ -380,7 +380,16 @@ function connectPostActions(post, record) {
         }
         update(record);
         likeButton.addEventListener("click", () => campusAction(likeButton, async () => {
+            const wasLiked = record.liked;
             update(await campusApi(path + "like", { enabled: !record.liked }));
+            if (!wasLiked && record.liked) {
+                const heart = document.createElement("span");
+                heart.className = "like-reaction-burst";
+                heart.setAttribute("aria-hidden", "true");
+                heart.textContent = "❤️";
+                likeButton.append(heart);
+                setTimeout(() => heart.remove(), 900);
+            }
         }));
         saveButton.addEventListener("click", () => campusAction(saveButton, async () => {
             update(await campusApi(path + "save", { enabled: !record.saved }));
@@ -919,6 +928,23 @@ document.addEventListener("DOMContentLoaded", () => {
     let directorySignature = "";
     const chatRelationship = document.getElementById("chatRelationship");
     const studentSearch = document.querySelector(".messages-search-bar input");
+    const messagesBox = document.querySelector(".messages-box");
+    document.getElementById("chatBackButton").addEventListener("click", () => {
+        peer = null;
+        ++directoryVersion;
+        chatState = "";
+        messagesBox.classList.remove("thread-open");
+        showRelationship(null);
+        studentSearch.focus();
+    });
+    function sizeChatViewport() {
+        const viewport = window.visualViewport;
+        document.documentElement.style.setProperty("--chat-height", (viewport?.height || window.innerHeight) + "px");
+        document.documentElement.style.setProperty("--chat-top", (viewport?.offsetTop || 0) + "px");
+    }
+    sizeChatViewport();
+    window.visualViewport?.addEventListener("resize", sizeChatViewport);
+    window.visualViewport?.addEventListener("scroll", sizeChatViewport);
 
     function showRelationship(student) {
         const signature = JSON.stringify(student && [student.id, student.followed, student.followsYou, student.messagesRemaining]);
@@ -926,6 +952,8 @@ document.addEventListener("DOMContentLoaded", () => {
         chatState = signature;
         chatRelationship.replaceChildren();
         chatMessagesArea.replaceChildren();
+        delete chatMessagesArea.dataset.messageSnapshot;
+        messagesBox.classList.toggle("thread-open", Boolean(student));
         chatSendForm.hidden = !student?.canMessage;
         document.getElementById("activeChatName").textContent = student?.name || "Choose a student";
         document.getElementById("activeChatAvatar").textContent = student?.name[0] || "A";
@@ -951,12 +979,68 @@ document.addEventListener("DOMContentLoaded", () => {
         const messages = await campusApi("messages?peer=" + encodeURIComponent(recipient));
         if (!live && recipient !== peer) return;
         const nearEnd = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
-        if (container.lastElementChild?.dataset.messageId === String(messages.at(-1)?.id)) return;
+        const snapshot = JSON.stringify(messages);
+        if (container.dataset.messageSnapshot === snapshot || container.querySelector(".message-editor")) return;
+        container.dataset.messageSnapshot = snapshot;
         container.replaceChildren(...messages.map(message => {
             const bubble = document.createElement("div");
             bubble.dataset.messageId = message.id;
             bubble.className = live ? "live-chat-msg" : "chat-bubble " + (message.own ? "outgoing" : "incoming");
-            bubble.textContent = live ? message.author + ": " + message.text : message.text;
+            const content = document.createElement("span");
+            content.className = "message-body";
+            content.textContent = message.deleted ? "Message deleted" : live ? message.author + ": " + message.text : message.text;
+            bubble.append(content);
+            if (message.created) {
+                const time = document.createElement("time");
+                time.className = "message-time";
+                time.dateTime = new Date(message.created).toISOString();
+                time.textContent = new Date(message.created).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                bubble.append(time);
+            }
+            if (message.edited && !message.deleted) {
+                const label = document.createElement("small");
+                label.className = "message-edited";
+                label.textContent = "Edited";
+                bubble.append(label);
+            }
+            if (message.own && !message.deleted) {
+                const controls = document.createElement("div");
+                controls.className = "message-actions";
+                const options = document.createElement("details");
+                options.className = "message-options";
+                const summary = document.createElement("summary");
+                summary.textContent = "Options";
+                summary.setAttribute("aria-label", "Message options");
+                options.append(summary, controls);
+                controls.append(campusButton("Edit", () => {
+                    if (bubble.querySelector(".message-editor")) return;
+                    const editor = document.createElement("div");
+                    editor.className = "message-editor";
+                    const input = document.createElement("textarea");
+                    input.value = message.text;
+                    input.maxLength = 2000;
+                    input.setAttribute("aria-label", "Edit message");
+                    const feedback = document.createElement("p");
+                    feedback.setAttribute("role", "alert");
+                    editor.append(input, campusButton("Save", async () => {
+                        try {
+                            await campusApi("message-edit", { id: message.id, text: input.value });
+                            editor.remove();
+                            delete container.dataset.messageSnapshot;
+                            await showMessages(recipient, container, live);
+                        } catch (error) { feedback.textContent = error.message; }
+                    }), campusButton("Cancel", () => editor.remove()), feedback);
+                    bubble.append(editor);
+                    addEmojiPicker(input);
+                    input.focus();
+                }), campusButton("Delete", async () => {
+                    if (!window.confirm("Delete this message for everyone?")) return;
+                    await campusApi("message-delete", { id: message.id });
+                    delete container.dataset.messageSnapshot;
+                    await showMessages(recipient, container, live);
+                }));
+                bubble.append(options);
+            }
             return bubble;
         }));
         if (nearEnd) container.scrollTop = container.scrollHeight;
@@ -990,8 +1074,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 const button = document.createElement("button");
                 button.type = "button";
                 button.className = "chat-thread-item";
-                button.textContent = student.name + (student.department ? " · " + student.department : "");
-                if (student.followsYou && !student.followed) button.textContent += " · Message request";
+                const avatar = document.createElement("span");
+                avatar.className = "avatar";
+                avatar.setAttribute("aria-hidden", "true");
+                avatar.textContent = student.name.slice(0, 1).toUpperCase();
+                const info = document.createElement("span");
+                info.className = "chat-thread-info";
+                const name = document.createElement("strong");
+                name.textContent = student.name;
+                const detail = document.createElement("span");
+                detail.className = "chat-last-msg";
+                detail.textContent = student.followsYou && !student.followed ? "Message request" : student.department || "Anchor University";
+                info.append(name, detail);
+                button.append(avatar, info);
                 button.classList.toggle("active", peer === student.id);
                 button.addEventListener("click", () => {
                     peer = student.id;
@@ -1030,7 +1125,7 @@ document.addEventListener("DOMContentLoaded", () => {
             event.preventDefault();
             const to = recipient();
             if (!to) return;
-            campusAction(form.querySelector("button"), async () => {
+            campusAction(form.querySelector('[type="submit"]'), async () => {
                 await campusApi("messages", { peer: to, text: input.value });
                 if (live || to === peer) form.reset();
                 await showMessages(to, container, live);
@@ -1040,6 +1135,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
     chatSendForm.hidden = true;
+    document.getElementById("chatMessageInput").addEventListener("keydown", event => {
+        if (event.key === "Enter" && !event.shiftKey && !event.isComposing && !matchMedia("(pointer: coarse)").matches) {
+            event.preventDefault();
+            chatSendForm.requestSubmit(chatSendForm.querySelector('[type="submit"]'));
+        }
+    });
     addEmojiPicker(document.getElementById("chatMessageInput"));
     addEmojiPicker(document.getElementById("liveChatInput"));
     connectChat(chatSendForm, document.getElementById("chatMessageInput"), () => peer, chatMessagesArea, false);

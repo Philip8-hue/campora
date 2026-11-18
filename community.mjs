@@ -32,6 +32,7 @@ export async function createCommunity(db, approvedStudent) {
         );
         CREATE INDEX IF NOT EXISTS activity_recipient ON activity_notifications(recipient, created);
         CREATE TABLE IF NOT EXISTS pending_push (id TEXT PRIMARY KEY);
+        CREATE TABLE IF NOT EXISTS message_changes (id BIGINT PRIMARY KEY, edited INTEGER NOT NULL DEFAULT 0, deleted INTEGER NOT NULL DEFAULT 0);
         CREATE TABLE IF NOT EXISTS reports (post TEXT, owner TEXT, created BIGINT, PRIMARY KEY(post, owner));
         CREATE TABLE IF NOT EXISTS people_preferences (
             owner TEXT NOT NULL, target TEXT NOT NULL, kind TEXT NOT NULL CHECK (kind IN ('mute', 'block')),
@@ -240,7 +241,13 @@ export async function createCommunity(db, approvedStudent) {
                 const rows = peer === 'campus-live'
                     ? await db.prepare(`SELECT * FROM messages WHERE recipient = 'campus-live' AND ${noBlock('messages.sender')} ORDER BY id DESC LIMIT 100`).all(owner, owner)
                     : await db.prepare('SELECT * FROM messages WHERE (sender = ? AND recipient = ?) OR (sender = ? AND recipient = ?) ORDER BY id DESC LIMIT 100').all(owner, peer, peer, owner);
-                return { data: await Promise.all(rows.reverse().map(async row => ({ id: row.id, own: row.sender === owner, author: (await profile(row.sender)).name || 'Anchor student', text: row.body }))) };
+                const changes = rows.length ? await db.prepare('SELECT * FROM message_changes WHERE id IN (' + rows.map(() => '?').join(',') + ')').all(...rows.map(row => row.id)) : [];
+                const states = new Map(changes.map(row => [String(row.id), row]));
+                return { data: await Promise.all(rows.reverse().map(async row => {
+                    const state = states.get(String(row.id));
+                    return { id: row.id, created: Number(row.created), own: row.sender === owner, author: (await profile(row.sender)).name || 'Anchor student',
+                        text: state?.deleted ? '' : row.body, edited: Boolean(state?.edited), deleted: Boolean(state?.deleted) };
+                })) };
             }
             if (path === '/api/notifications') {
                 const readAt = Number((await db.prepare('SELECT read_at FROM preferences WHERE owner = ?').get(owner))?.read_at ?? 0);
@@ -342,6 +349,24 @@ export async function createCommunity(db, approvedStudent) {
         }
 
         if (method !== 'POST') return missing;
+        if (path === '/api/message-edit' || path === '/api/message-delete') {
+            const id = String(input?.id ?? '');
+            if (!/^\d{1,18}$/.test(id)) return invalid;
+            const deleting = path === '/api/message-delete';
+            const body = text(input?.text, 2000);
+            if (!deleting && !body) return invalid;
+            return db.transaction(async () => {
+                const message = await db.prepare('SELECT sender FROM messages WHERE id = ?' + (db.postgres ? ' FOR UPDATE' : '')).get(id);
+                if (!message) return missing;
+                if (message.sender !== owner) return { status: 403, error: 'You can only change your own messages.' };
+                const state = await db.prepare('SELECT deleted FROM message_changes WHERE id = ?').get(id);
+                if (state?.deleted) return deleting ? { data: { ok: true } } : missing;
+                await db.prepare('UPDATE messages SET body = ? WHERE id = ?').run(deleting ? '' : body, id);
+                await db.prepare(`INSERT INTO message_changes VALUES (?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET edited=excluded.edited, deleted=excluded.deleted`).run(id, deleting ? 0 : 1, deleting ? 1 : 0);
+                return { data: { ok: true } };
+            });
+        }
         if (path === '/api/people-preferences' || path === '/api/friendships' || path === '/api/follow') {
             const peer = typeof input?.peer === 'string' ? input.peer : '';
             if (peer === owner || !peer) return missing;

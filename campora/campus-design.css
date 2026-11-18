@@ -1,4 +1,60 @@
 /* Shared campus identity */
+#chatBackButton { display: none; }
+.messages-box { grid-template-columns: minmax(230px, 30%) minmax(0, 1fr); height: min(760px, calc(100dvh - 180px)); min-height: 420px; }
+.messages-sidebar, .chat-window { min-height: 0; min-width: 0; }
+.chat-header { flex-shrink: 0; min-height: 70px; }
+.chat-header > div:last-child { min-width: 0; overflow-wrap: anywhere; }
+#chatRelationship { flex-shrink: 0; margin: 0; padding: 10px 16px; font-size: 12px; border-bottom: 1px solid var(--border); }
+#chatThreadList .chat-thread-item { width: 100%; text-align: left; min-height: 76px; border-bottom: 1px solid var(--border-subtle); }
+.chat-last-msg { display: block; }
+.chat-messages-scroll { overscroll-behavior: contain; gap: 6px; max-height: none; }
+.messages-box .chat-thread-list { max-height: none; }
+.chat-bubble { max-width: min(78%, 540px); border-radius: 12px; box-shadow: 0 1px 2px #22193416; }
+.message-time { display: block; font-size: 10px; opacity: .85; text-align: right; margin-top: 3px; }
+.message-options summary { min-height: 24px; cursor: pointer; font-size: 11px; text-align: right; }
+.message-options .message-actions { flex-wrap: wrap; }
+.message-options[open] summary { margin-bottom: 5px; }
+.chat-window .chat-composer-bar { display: flex; flex-direction: row; align-items: end; flex-shrink: 0; flex-wrap: nowrap; gap: 8px; }
+#chatMessageInput { min-width: 0; width: 100%; flex: 1 1 auto; min-height: 44px; max-height: 120px; resize: vertical; padding: 11px 13px; border: 1px solid var(--border); border-radius: 18px; background: var(--background); color: var(--text); font: inherit; line-height: 1.4; }
+.chat-composer-bar .emoji-picker { order: -1; margin: 0; }
+.chat-composer-bar .emoji-picker > button { min-height: 44px; padding-inline: 9px; }
+.chat-composer-bar .emoji-choices { position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 5; }
+.chat-send-btn { min-height: 44px; padding-inline: 14px; flex-shrink: 0; }
+@media (max-width: 700px) {
+    .messages-box { display: block; height: calc(100dvh - 290px); min-height: 350px; }
+    .messages-sidebar { height: 100%; }
+    .messages-box .chat-window { display: none; }
+    .messages-box.thread-open {
+        position: fixed; top: var(--chat-top, 0px); left: 0; right: 0; bottom: auto;
+        height: var(--chat-height, 100dvh); min-height: 0; z-index: 100;
+        border: 0; border-radius: 0; background: var(--surface);
+    }
+    .messages-box.thread-open .messages-sidebar { display: none; }
+    .messages-box.thread-open .chat-window { display: flex; height: 100%; min-height: 0; }
+    #chatBackButton { display: block; flex-shrink: 0; min-height: 44px; padding-inline: 8px; }
+    .chat-header { padding: max(8px, env(safe-area-inset-top)) 10px 8px; gap: 8px; }
+    .chat-messages-scroll { padding: 12px; }
+    .chat-bubble { max-width: 87%; }
+    .chat-composer-bar { padding: 8px 8px max(8px, env(safe-area-inset-bottom)); }
+    .chat-composer-bar .auth-secondary { font-size: 12px; }
+}
+.message-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.message-edited { display: block; margin-top: 4px; font-size: 11px; }
+.message-actions { display: flex; gap: 8px; margin-top: 5px; }
+.message-actions > button { min-height: 32px; padding: 3px 8px; font-size: 12px; background: transparent; color: inherit; border: 1px solid currentColor; }
+.message-editor { margin-top: 8px; }
+.message-editor textarea { display: block; width: 100%; min-height: 70px; padding: 8px; font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
+.like-button { position: relative; }
+.like-reaction-burst { pointer-events: none; position: absolute; left: 50%; bottom: 70%; font-size: 32px; animation: like-heart-rise 850ms ease-out both; }
+@keyframes like-heart-rise {
+    0% { opacity: 0; transform: translate(-50%, 4px) scale(.45) rotate(-12deg); }
+    20% { opacity: 1; transform: translate(-50%, -9px) scale(1.15) rotate(8deg); }
+    55% { opacity: 1; transform: translate(-50%, -23px) scale(1) rotate(0); }
+    100% { opacity: 0; transform: translate(-50%, -48px) scale(.8); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .like-reaction-burst { animation: none; }
+}
 .page-header-actions { display: flex; gap: 8px; align-items: center; }
 .notification-badge { display: inline-flex; min-width: 20px; min-height: 20px; align-items: center; justify-content: center; padding: 1px 5px; border-radius: 20px; background: #a22042; color: #fff; font-size: 11px; font-weight: 700; }
 .notification-badge[hidden] { display: none !important; }

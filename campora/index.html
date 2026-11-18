@@ -329,7 +329,7 @@
             <!-- ============================================== -->
             <div id="tab-messages" class="tab-page">
                 <div class="section-heading">
-                    <h2>Direct Campus Messages</h2>
+                    <h2>Messages</h2>
                     <span>Follow someone to send up to five messages. Mutual follows unlock the conversation.</span>
                 </div>
 
@@ -343,6 +343,7 @@
 
                     <div class="chat-window">
                         <div class="chat-header">
+                            <button type="button" id="chatBackButton" class="auth-secondary" aria-label="Back to conversations">Back</button>
                             <div class="avatar" id="activeChatAvatar">A</div>
                             <div>
                                 <strong id="activeChatName">Choose a student</strong>
@@ -354,7 +355,7 @@
                         <div class="chat-messages-scroll" id="chatMessagesArea"></div>
 
                         <form id="chatSendForm" class="chat-composer-bar">
-                            <input type="text" id="chatMessageInput" aria-label="Direct message" placeholder="Write a message..." required>
+                            <textarea id="chatMessageInput" aria-label="Direct message" placeholder="Message" maxlength="2000" rows="1" required></textarea>
                             <button type="submit" class="chat-send-btn">Send</button>
                         </form>
                     </div>
