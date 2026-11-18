@@ -692,6 +692,8 @@ function connectPostActions(post, record) {
 
     document.getElementById("createPostBtn")
         ?.addEventListener("click", () => openComposer());
+    document.getElementById("mobileCreatePost")
+        ?.addEventListener("click", () => openComposer());
 
     document.getElementById("composerPrompt")
         ?.addEventListener("click", () => openComposer());
@@ -1081,11 +1083,36 @@ document.addEventListener("DOMContentLoaded", () => {
             row.textContent = text;
             return row;
         }
-        container.replaceChildren(
-            item("More universities are coming soon. Campora is currently available at Anchor University.", !notifications.read),
-            ...notifications.messages.map(message => item("Message from " + message.author + ": " + message.text, message.unread))
-        );
+        container.replaceChildren(...notifications.items.map(notification => {
+            const row = document.createElement("a");
+            row.className = "notification-item" + (notification.unread ? " unread" : "");
+            row.href = notification.href;
+            const actions = { follow: " followed you", repost: " reposted your post", "message-request": " sent you a message request", message: " sent you a message" };
+            row.textContent = notification.author + actions[notification.kind];
+            const time = document.createElement("time");
+            time.dateTime = new Date(notification.created).toISOString();
+            time.textContent = new Date(notification.created).toLocaleString();
+            row.append(time);
+            return row;
+        }));
+        if (!notifications.items.length) container.append(item("New follows, reposts and messages will appear here.", false));
+        updateNotificationBadges(notifications.unreadCount);
     }
+    function updateNotificationBadges(count) {
+        document.querySelectorAll("[data-notification-count]").forEach(badge => {
+            badge.hidden = !count;
+            badge.textContent = count > 99 ? "99+" : String(count);
+            badge.setAttribute("aria-label", count + " unread notifications");
+        });
+    }
+    async function refreshNotificationCount() {
+        if (document.hidden) return;
+        if (document.getElementById("tab-notifications").classList.contains("active")) return loadNotifications();
+        const result = await campusApi("notifications");
+        updateNotificationBadges(result.unreadCount);
+    }
+    refreshNotificationCount().catch(campusError);
+    setInterval(() => refreshNotificationCount().catch(() => {}), 15000);
     const markRead = document.getElementById("markAllReadBtn");
     markRead.addEventListener("click", () => campusAction(markRead, async () => {
         await campusApi("notifications", {});

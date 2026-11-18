@@ -53,6 +53,7 @@
                     </a>
                     <a href="#" class="nav-link" data-nav="notifications">
                         <span>Notifications</span>
+                        <span class="notification-badge" data-notification-count hidden></span>
                     </a>
                 </div>
 
@@ -93,7 +94,12 @@
                     <div class="campus-header-pill"><strong>Anchor University</strong></div>
                 </div>
 
-                <button class="primary-button" id="createPostBtn">New post</button>
+                <div class="page-header-actions">
+                    <button type="button" class="auth-secondary" data-nav="notifications" aria-label="Open notifications">
+                        Notifications <span class="notification-badge" data-notification-count hidden></span>
+                    </button>
+                    <button class="primary-button" id="createPostBtn">New post</button>
+                </div>
             </header>
             <p id="campus-status" class="campus-announcement" role="alert" hidden></p>
 
@@ -533,6 +539,27 @@
         </div>
     </div>
 
+    <nav class="mobile-bottom-nav" aria-label="Main navigation">
+        <a href="#" data-nav="home" aria-current="page" aria-label="Home">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></svg>
+            <span>Home</span>
+        </a>
+        <a href="#" data-nav="explore" aria-label="Explore">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 3-6 12-12 6L9 9Z"/><path d="m9 9 6 6"/></svg>
+            <span>Explore</span>
+        </a>
+        <button type="button" id="mobileCreatePost" class="mobile-create-post" aria-label="Create post">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <a href="#" data-nav="messages" aria-label="Messages">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11a8 8 0 0 1-8 8H8l-5 3V11a9 9 0 0 1 18 0Z"/><path d="M8 11h8"/></svg>
+            <span>Messages</span>
+        </a>
+        <a href="#" data-nav="profile" aria-label="Profile">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></svg>
+            <span>Profile</span>
+        </a>
+    </nav>
     <!-- JAVASCRIPT -->
     <script src="/session.js"></script>
     <script src="/community-client.js"></script>

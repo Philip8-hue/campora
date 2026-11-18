@@ -1,4 +1,27 @@
 /* Shared campus identity */
+.page-header-actions { display: flex; gap: 8px; align-items: center; }
+.notification-badge { display: inline-flex; min-width: 20px; min-height: 20px; align-items: center; justify-content: center; padding: 1px 5px; border-radius: 20px; background: #a22042; color: #fff; font-size: 11px; font-weight: 700; }
+.notification-badge[hidden] { display: none !important; }
+.notification-item { display: block; }
+.notification-item time { display: block; font-size: 12px; color: var(--muted); margin-top: 5px; }
+.mobile-bottom-nav { display: none; }
+@media (max-width: 700px) {
+    .campus-redesign { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+    .mobile-bottom-nav {
+        position: fixed; inset: auto 0 0; z-index: 60;
+        display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+        align-items: center; min-height: 70px;
+        padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+        border-top: 1px solid var(--border); border-radius: 22px 22px 0 0;
+        background: var(--surface); box-shadow: 0 -6px 24px -12px #22193455;
+    }
+    .mobile-bottom-nav a { display: grid; place-items: center; gap: 3px; min-height: 50px; color: var(--muted); font-size: 10px; font-weight: 700; }
+    .mobile-bottom-nav a[aria-current="page"] { color: var(--accent); }
+    .mobile-bottom-nav svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .mobile-bottom-nav .mobile-create-post { position: relative; justify-self: center; width: 58px; height: 58px; margin-top: -30px; display: grid; place-items: center; border: 5px solid var(--surface); border-radius: 50%; background: var(--primary); color: #fff; box-shadow: 0 5px 12px -5px #22193466; }
+    .page-header-actions { margin-left: auto; }
+    .page-header-actions #createPostBtn { display: none; }
+}
 .post-profile-link { font-weight: 700; text-underline-offset: 3px; }
 .post-profile-link:hover { text-decoration: underline; }
 .repost-credit { color: var(--muted); margin-bottom: 8px; }
