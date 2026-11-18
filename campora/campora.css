@@ -3003,15 +3003,31 @@ input:checked + .toggle-slider:before {
 
 /* DARK MODE */
 body.dark-mode {
-    --background: #0f172a;
-    --surface: #262034;
-    --surface-hover: #332946;
-    --text-secondary: #d9cbe9;
-    --accent: #bd9dff;
-    --primary-light: #36264f;
-    --text: #f1f5f9;
-    --muted: #baaccb;
-    --border: #334155;
+    color-scheme: dark;
+    --background: #15101e;
+    --surface: #20172b;
+    --white: #20172b;
+    --surface-hover: #302340;
+    --surface-glass: #20172b;
+    --primary: #7139b4;
+    --primary-dark: #602b9e;
+    --primary-light: #352453;
+    --primary-glow: #c9a5ff26;
+    --accent: #dcc5ff;
+    --accent-hover: #f3e8ff;
+    --text: #f8f3ff;
+    --text-secondary: #e1d6ef;
+    --muted: #c5b7d6;
+    --border: #58476c;
+    --border-subtle: #40324f;
+    --field-border: #a18abf;
+    --focus-color: #e4caff;
+    --green: #8fdfb8;
+    --green-light: #203a32;
+    --coral: #ffb5c6;
+    --coral-light: #432437;
+    --amber: #f8d296;
+    --amber-light: #3d2d20;
 }
 
 body.dark-mode .card,
@@ -3026,28 +3042,28 @@ body.dark-mode .opportunity-card,
 body.dark-mode .notifications-box,
 body.dark-mode .settings-grid,
 body.dark-mode .profile-empty-state {
-    background: #1e293b;
-    border-color: #334155;
-    color: #f1f5f9;
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--text);
 }
 
 body.dark-mode .search-input-wrap,
 body.dark-mode .filter-chip,
 body.dark-mode .composer-top input,
 body.dark-mode .composer-prompt {
-    background: #0f172a;
-    border-color: #334155;
-    color: #f1f5f9;
+    background: var(--background);
+    border-color: var(--border);
+    color: var(--text);
 }
 
 body.dark-mode .chat-messages-scroll {
-    background: #0f172a;
+    background: var(--background);
 }
 
 body.dark-mode .chat-bubble.incoming {
-    background: #334155;
-    border-color: #475569;
-    color: #fff;
+    background: var(--surface-hover);
+    border-color: var(--border);
+    color: var(--text);
 }
 
 /* Component theme refinements */

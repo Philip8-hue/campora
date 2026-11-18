@@ -149,12 +149,98 @@
 .campus-redesign .right-sidebar .campus-announcement { margin: 0; }
 .campus-redesign #tab-home .post.card { background: transparent; }
 .campus-redesign #emptyFeed { padding: 20px 0; border-top: 1px solid var(--border); color: var(--muted); }
+.campus-redesign.dark-mode .site-header.sidebar { background: var(--surface); }
 .campus-redesign.dark-mode .site-header .logo { color: var(--text); }
 .campus-redesign.dark-mode .site-header .logo span { color: var(--accent); }
 .campus-redesign.dark-mode #tab-home .composer.card,
 .campus-redesign.dark-mode .app-container .right-card { background: var(--surface) !important; }
 .campus-redesign.dark-mode #tab-home .composer-prompt { background: var(--surface-hover) !important; }
 .campus-redesign.dark-mode .site-header .nav-link.active { background: var(--primary-light) !important; color: var(--accent) !important; }
+.campus-redesign.dark-mode .site-header .mobile-menu-button { border-color: var(--field-border); }
+.campus-redesign.dark-mode .feed-masthead { background: var(--primary-light); border: 1px solid var(--border); }
+
+/* Dark mode surfaces and controls */
+.dark-mode :where(a, button, input, textarea, select, summary):focus-visible,
+.dark-mode :is(.toggle-switch, .campus-header-pill):focus-within {
+    outline: 3px solid var(--focus-color);
+    outline-offset: 3px;
+}
+.dark-mode ::selection { color: #15101e; background: var(--focus-color); }
+.dark-mode ::placeholder { color: var(--muted); opacity: 1; }
+.dark-mode { scrollbar-color: var(--field-border) var(--background); }
+.dark-mode :is(input, textarea, select) { caret-color: var(--focus-color); accent-color: var(--accent); }
+.dark-mode :is(input:not([type="checkbox"]):not([type="file"]), textarea, select) {
+    background: var(--background);
+    color: var(--text);
+    border-color: var(--field-border);
+}
+.dark-mode :is(.search-input-wrap, .composer-upload) { border-color: var(--field-border) !important; }
+
+.dark-mode :is(.chat-header, .chat-composer-bar, .messages-sidebar, .chat-window,
+    .live-chat-panel, .post-menu, .comments-section, .poll-option, .campus-tools,
+    .caption-editor, .social-profile-tabs, .social-profile-header, .social-profile-picture-wrap,
+    .saved-item-card, .settings-panel, .composer-modal, .composer-modal-header, .profile-modal) {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+}
+.dark-mode :is(.post-text, .social-profile-details h1, .poll-option, .story-name) {
+    color: var(--text);
+}
+.dark-mode :is(.composer-identity p, .composer-anonymous, .post-actions button,
+    .profile-tab, .community-desc, .social-profile-campus, .social-profile-department),
+.dark-mode #socialProfileBio {
+    color: var(--text-secondary);
+}
+.dark-mode :is(.avatar, .add-story-icon, .community-avatar, .community-campus,
+    .social-profile-stats strong, #socialProfileUsername) {
+    color: var(--accent);
+}
+.dark-mode :is(.avatar, .add-story-icon, .community-avatar) {
+    background: var(--primary-light);
+    border-color: var(--border);
+}
+.dark-mode #socialProfilePicture { background: var(--surface-hover); }
+.dark-mode .profile-cover {
+    background: linear-gradient(120deg, #352453, #573380 62%, #7139b4);
+}
+.dark-mode .composer-modal-overlay,
+.dark-mode .profile-modal-overlay { background: #100a19d9; }
+.dark-mode .composer-close,
+.dark-mode .profile-close {
+    background: var(--primary-light);
+    color: var(--accent);
+}
+.dark-mode .composer-textarea { border: 1px solid var(--field-border); border-radius: 8px; padding: 12px; }
+.dark-mode .toggle-slider { background-color: #58476c; box-shadow: inset 0 0 0 1px var(--field-border); }
+.dark-mode input:checked + .toggle-slider { background-color: var(--primary); }
+.dark-mode :is(.composer-upload, .post-menu button, .auth-secondary,
+    .join-community-btn, .profile-tab[aria-pressed="true"], .filter-chip.active,
+    .chat-thread-item.active, .chat-bubble.outgoing, .notification-item.unread) {
+    background: var(--primary-light);
+    color: var(--accent);
+    border-color: var(--border);
+}
+.dark-mode :is(.post-menu button, .auth-secondary, .join-community-btn, .profile-tab, .filter-chip, .poll-option) {
+    border-color: var(--field-border);
+}
+.dark-mode :is(.post-menu button, .auth-secondary, .join-community-btn, .profile-tab,
+    .filter-chip, .post-actions button, .chat-thread-item, .composer-upload):hover {
+    background: var(--surface-hover);
+    color: var(--accent);
+}
+.dark-mode :is(.post-actions button.liked, .post-actions button.bookmarked) { color: var(--coral); }
+.dark-mode :is(.join-community-btn.joined, .nav-badge.green) {
+    background: var(--green-light);
+    color: var(--green);
+}
+.dark-mode :is(.primary-button, .composer-publish, .chat-send-btn, .profile-save-btn) {
+    background: var(--primary) !important;
+    color: #fff !important;
+}
+.dark-mode :is(.primary-button, .composer-publish, .chat-send-btn, .profile-save-btn):hover {
+    background: #854bc1 !important;
+}
 
 @media (min-width: 1060px) {
     .campus-redesign { --nav-width: 224px; padding-left: var(--nav-width); }
